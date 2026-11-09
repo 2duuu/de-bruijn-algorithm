@@ -9,7 +9,7 @@ from debruijn import (DeBruijnGraph, compute_metrics, eulerian_path, plant_repea
 from debruijn.euler import assemble_eulerian, euler_condition
 from debruijn.contigs import unitigs
 from debruijn.pipeline import run_config
-from debruijn import theory
+import math
 
 K = 21
 L = 100
@@ -134,7 +134,7 @@ def test_repeat_collapse_threshold(R):
 
 
 # --------------------------------------------------- check 4: sweep invariants
-def test_components_decrease_with_coverage_and_match_theory():
+def test_components_decrease_with_coverage():
     G = 30000
     means = []
     for c in [1, 2, 4, 8, 16]:
@@ -142,7 +142,8 @@ def test_components_decrease_with_coverage_and_match_theory():
                             "run_euler": False})["components"] for s in range(3)]
         mean = sum(vals) / len(vals)
         means.append(mean)
-        expected = theory.expected_components(G, c, L, K)
+        # Lander-Waterman: expected k-mer islands ~ N * exp(-c (L-k+1) / L)
+        expected = max(1.0, G * (1 - math.exp(-c / L)) * math.exp(-c / L * (L - K + 1)))
         if expected > 20:  # Poisson regime: within 25% of Lander-Waterman
             assert abs(mean - expected) / expected < 0.25, (c, mean, expected)
     assert all(a >= b for a, b in zip(means, means[1:]))
@@ -154,7 +155,7 @@ def test_imbalance_matches_two_per_error():
     for e in [0.001, 0.003]:
         m = run_config({"genome": {"length": G}, "coverage": c, "k": K, "error_rate": e,
                         "seed": 1, "run_euler": False})
-        expected = theory.expected_imbalance_errors(G, c, e, K, L)
+        expected = 2 * e * c * G  # each isolated error unbalances 2 nodes
         assert abs(m["imbalance"] - expected) / expected < 0.1
         # ~2 per realised error (errors < k apart in one read share a structure)
         assert 1.7 * m["n_errors"] <= m["imbalance"] <= 2 * m["n_errors"]

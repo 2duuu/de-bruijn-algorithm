@@ -1,6 +1,5 @@
 {
   "name": "error_sweep",
-  "title": "Error sweep (c = 30, k = 31)",
   "description": "Fixed coverage and k; vary substitution error rate e. Expect imbalance to grow linearly (~2 per error).",
   "base": {
     "genome": {
@@ -29,24 +28,5 @@
       0.02
     ]
   },
-  "replicates": 5,
-  "plots": [
-    {
-      "y": "imbalance",
-      "theory": "imbalance",
-      "title": "Graph imbalance vs error rate (c = 30, k = 31); dashed: 2\u00b7e\u00b7c\u00b7G"
-    },
-    {
-      "y": [
-        "dead_ends",
-        "branching"
-      ],
-      "ylabel": "nodes",
-      "title": "Tips and branching nodes vs error rate"
-    },
-    {
-      "y": "degradation",
-      "title": "Normalized degradation vs error rate"
-    }
-  ]
+  "replicates": 5
 }

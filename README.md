@@ -1,16 +1,17 @@
 # Degradation of De Bruijn Graphs in Genome Assembly
 
-A from-scratch Python pipeline for the project *"Analyzing the Degradation of De Bruijn
-Graphs in Genome Assembly"*. It simulates reads from a reference genome, builds the
-De Bruijn graph, runs the Eulerian traversal (Pevzner et al. 2001), extracts contigs, and
-measures how the graph degrades as coverage `c`, error rate `e` and k-mer size `k` vary.
+A from-scratch Python implementation of De Bruijn graph assembly for the project
+*"Analyzing the Degradation of De Bruijn Graphs in Genome Assembly"*. It simulates reads
+from a reference genome, builds the De Bruijn graph, runs the Eulerian traversal
+(Pevzner et al. 2001), extracts contigs, and computes degradation metrics. Sweeps over
+coverage `c`, error rate `e` and k-mer size `k` write raw CSV results for your own analysis.
 
 ## Quick start
 
 ```bash
 pip install -r requirements.txt
 python -m pytest              # correctness checks from the proposal
-python -m debruijn all        # the three pre-defense sweeps -> results/
+python -m debruijn all        # run the three sweeps -> results/<sweep>/results.csv
 ```
 
 Run one sweep at a time:
@@ -21,13 +22,14 @@ python -m debruijn error      # error sweep     (fixed c, fixed k) configs/error
 python -m debruijn kmer       # k-mer sweep     (small e, high c)  configs/kmer_sweep.json
 ```
 
-Each sweep writes to `results/<name>/`: `raw.csv` (one row per run), `summary.csv`
-(mean and std over replicates), a copy of the `config.json` used, and the PNG plots.
+Each sweep writes `results/<name>/results.csv` (one row per run with every metric, plus
+`x`, `series` and `replicate` columns) and a copy of the `config.json` that was used.
 
 ### Configuring experiments
 
 Every sweep is a JSON file with a `base` configuration, one `x` parameter to vary, an
-optional `series` parameter (one line per value), `replicates`, and a list of `plots`.
+optional `series` parameter (a second parameter, crossed with `x`), and `replicates`
+(repeated runs with different read seeds).
 You can override any field from the command line without editing the file:
 
 ```bash
@@ -70,8 +72,7 @@ Configuration keys (defaults in `debruijn/pipeline.py`):
 | Euler condition and Hierholzer's algorithm, run on each weakly connected component | `debruijn/euler.py` |
 | contigs = maximal non-branching paths (unitigs), NG50 | `debruijn/contigs.py` |
 | metrics and degradation index | `debruijn/metrics.py` |
-| closed-form expectations (theory overlays) | `debruijn/theory.py` |
-| sweeps, replicates, CSV, plots, CLI | `debruijn/sweep.py`, `plotting.py`, `__main__.py` |
+| sweeps, replicates, CSV output, CLI | `debruijn/sweep.py`, `__main__.py` |
 
 ## Metrics
 
@@ -123,48 +124,6 @@ These are the checks listed in the proposal. All 20 tests pass.
    decreases with coverage and is within 25 % of Lander-Waterman; the imbalance is about 2
    per error; the unitigs cover every edge exactly once.
 
-## Pre-defense results (`results/`)
-
-Settings: 50 kb random circular genome, `L = 100`, mean ± std over replicates.
-The full sweep takes about 1 minute on 4 cores.
-
-### 1. Coverage sweep (`e = 0`, k ∈ {21, 31, 51}, 5 replicates)
-
-![components](results/coverage_sweep/components_vs_coverage.png)
-
-For `c ≳ 2`, the component count decays exponentially (a straight line on the log
-axis) and matches the Lander-Waterman expectation `C ≈ N·exp(−c(L−k+1)/L)` (dashed) almost
-exactly, until it reaches 1. Larger `k` needs more coverage, because only `L−k+1` k-mers fit
-in a read. **Note:** below `c ≈ 2` the count *increases* with coverage. When there are very
-few reads, each new read adds an island rather than bridging a gap. The decay hypothesis
-therefore only holds in the `c > 2` regime.
-
-### 2. Error sweep (`c = 30`, `k = 31`, 5 replicates)
-
-![imbalance](results/error_sweep/imbalance_vs_error_rate.png)
-
-At low `e` the imbalance grows linearly and matches the first-order prediction
-`I ≈ 2·e·c·G` (2 per error: each bubble or tip unbalances its two attachment nodes).
-Measured imbalance per error: 1.96 at `e = 0.0005`, 1.84 at `e = 0.002`, 1.63 at
-`e = 0.005` and 1.05 at `e = 0.02`. The curve becomes **sub-linear** because error
-structures start to interact: errors less than `k` apart in a read share one structure,
-identical errors in different reads share k-mers, and one error's re-join node can be
-another error's branch node (in = out = 2, balanced again).
-
-### 3. k-mer sweep (`c = 30`, e ∈ {0, 0.001, 0.005}, repeats of 15/25/40/60 bp, 3 replicates)
-
-![degradation vs k](results/kmer_sweep/degradation_vs_k.png)
-![terms vs k](results/kmer_sweep/terms_vs_k_e0.001.png)
-
-* **With errors:** a clear U-shape. Small `k` collapses repeats (ambiguity and contiguity
-  loss are high). Large `k` breaks the graph apart, because the effective k-mer coverage
-  `c(L−k+1)/L·(1−e)^k` drops and coverage gaps appear. The minimum is around `k ≈ 25–31`.
-  A higher `e` raises the floor and moves the right arm to smaller `k`.
-* **Without errors, at c = 30:** `D` reaches about 0 once `k` exceeds the longest repeat
-  (60 bp). However, it does **not** stay flat up to `k = L`. Above `k ≈ 75`, fewer than
-  about 26 k-mers per read remain, and gaps appear even at this "high" coverage. This
-  slightly contradicts the proposal's prediction that error-free degradation is flat.
-
 ## Simplifications and known limitations
 
 * Reads come from the forward strand only (no reverse complements), and only
@@ -172,5 +131,5 @@ another error's branch node (in = out = 2, balanced again).
 * The Euler traversal uses distinct k-mers. Copy number is not inferred, so collapsed
   repeats make the Euler path shorter than the genome.
 * The default genome is a 50 kb random sequence, chosen for speed. A real bacterial
-  reference can be used via `genome.fasta`. Pure-Python cost is about 0.3–1 s per run at
-  50 kb and 30× coverage, and scales linearly.
+  reference can be used via `genome.fasta`. One run takes about 0.3–1 s at 50 kb and 30×
+  coverage, and the cost scales linearly with genome size; use `--jobs` to run in parallel.

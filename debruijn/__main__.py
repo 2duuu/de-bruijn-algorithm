@@ -41,7 +41,7 @@ def _apply_sets(sweep: dict, sets: list[str]) -> dict:
     for item in sets or []:
         key, _, val = item.partition("=")
         val = _parse_value(val)
-        if key.split(".")[0] in ("x", "series", "replicates", "plots", "name", "title"):
+        if key.split(".")[0] in ("x", "series", "replicates", "name"):
             sweep = set_dotted(sweep, key, val)
         else:
             sweep = set_dotted(sweep, "base." + key, val)
@@ -56,8 +56,8 @@ def _run_sweep_file(path: str, args) -> None:
         sweep["replicates"] = args.replicates
     out = os.path.join(args.out, sweep.get("name", os.path.splitext(os.path.basename(path))[0]))
     print(f"== {sweep.get('name')}: {sweep.get('description', '')}")
-    _, summary, files = run_and_save(sweep, out, jobs=args.jobs)
-    print(f"   wrote {out}/raw.csv, summary.csv and {len(files)} plot(s)")
+    path = run_and_save(sweep, out, jobs=args.jobs)
+    print(f"   wrote {path}")
 
 
 def main(argv=None) -> int:

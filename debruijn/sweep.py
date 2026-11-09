@@ -7,7 +7,6 @@ import itertools
 import json
 import math
 import os
-import statistics
 from concurrent.futures import ProcessPoolExecutor
 
 from .pipeline import DEFAULTS, merge, run_config
@@ -76,25 +75,6 @@ def run_sweep(sweep: dict, jobs: int = 1, progress: bool = True) -> list[dict]:
     return rows
 
 
-def summarize(rows: list[dict]) -> list[dict]:
-    """Mean / std of every numeric metric grouped by (series, x)."""
-    groups: dict = {}
-    for r in rows:
-        groups.setdefault((r["series"], r["x"]), []).append(r)
-    out = []
-    for (sv, xv), rs in groups.items():
-        s = {"series": sv, "x": xv, "n": len(rs)}
-        for key, val in rs[0].items():
-            if key in ("series", "x", "replicate", "seed"):
-                continue
-            if isinstance(val, (bool, int, float)):
-                vals = [float(r[key]) for r in rs]
-                s[f"{key}_mean"] = statistics.fmean(vals)
-                s[f"{key}_std"] = statistics.stdev(vals) if len(vals) > 1 else 0.0
-        out.append(s)
-    return out
-
-
 def write_csv(rows: list[dict], path: str) -> None:
     keys: list[str] = []
     for r in rows:
@@ -109,15 +89,12 @@ def write_csv(rows: list[dict], path: str) -> None:
                         for k, v in r.items()})
 
 
-def run_and_save(sweep: dict, out_dir: str, jobs: int = 1):
-    from .plotting import plot_sweep
-
+def run_and_save(sweep: dict, out_dir: str, jobs: int = 1) -> str:
+    """Run a sweep and write one CSV row per run to ``out_dir/results.csv``."""
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, "config.json"), "w") as fh:
         json.dump(sweep, fh, indent=2)
     rows = run_sweep(sweep, jobs=jobs)
-    summary = summarize(rows)
-    write_csv(rows, os.path.join(out_dir, "raw.csv"))
-    write_csv(summary, os.path.join(out_dir, "summary.csv"))
-    files = plot_sweep(sweep, summary, out_dir)
-    return rows, summary, files
+    path = os.path.join(out_dir, "results.csv")
+    write_csv(rows, path)
+    return path
