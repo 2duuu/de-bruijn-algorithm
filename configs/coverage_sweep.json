@@ -1,0 +1,44 @@
+{
+  "name": "coverage_sweep",
+  "description": "Error-free reads; vary coverage depth c for a few k. Expect components to decay ~exponentially to 1 (Lander-Waterman).",
+  "base": {
+    "genome": {
+      "length": 50000,
+      "seed": 0,
+      "circular": true,
+      "repeats": []
+    },
+    "read_length": 100,
+    "error_rate": 0.0,
+    "k": 31
+  },
+  "x": {
+    "param": "coverage",
+    "values": [
+      0.5,
+      1,
+      1.5,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8,
+      10,
+      12,
+      15,
+      20,
+      25,
+      30
+    ]
+  },
+  "series": {
+    "param": "k",
+    "values": [
+      21,
+      31,
+      51
+    ]
+  },
+  "replicates": 5
+}

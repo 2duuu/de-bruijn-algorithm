@@ -1,0 +1,32 @@
+{
+  "name": "error_sweep",
+  "description": "Fixed coverage and k; vary substitution error rate e. Expect imbalance to grow linearly (~2 per error).",
+  "base": {
+    "genome": {
+      "length": 50000,
+      "seed": 0,
+      "circular": true,
+      "repeats": []
+    },
+    "read_length": 100,
+    "coverage": 30,
+    "k": 31
+  },
+  "x": {
+    "param": "error_rate",
+    "values": [
+      0.0,
+      0.0005,
+      0.001,
+      0.002,
+      0.003,
+      0.004,
+      0.005,
+      0.0075,
+      0.01,
+      0.015,
+      0.02
+    ]
+  },
+  "replicates": 5
+}
