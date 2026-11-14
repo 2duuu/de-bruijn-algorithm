@@ -52,8 +52,8 @@ def expand(sweep: dict) -> list[dict]:
 def _run_job(cfg: dict) -> dict:
     meta = {k: cfg.pop(k) for k in ("_x", "_series", "_rep")}
     m = run_config(cfg)
-    m.update(x=meta["_x"], series=meta["_series"], replicate=meta["_rep"])
-    return m
+    # sweep coordinates first, then run settings, formula metrics, check metrics
+    return {"x": meta["_x"], "series": meta["_series"], "replicate": meta["_rep"], **m}
 
 
 def run_sweep(sweep: dict, jobs: int = 1, progress: bool = True) -> list[dict]:

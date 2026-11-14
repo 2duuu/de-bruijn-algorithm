@@ -7,7 +7,6 @@ import pytest
 from debruijn import (DeBruijnGraph, compute_metrics, eulerian_path, plant_repeats,
                       random_genome, simulate_reads, spell_path, tile_reads)
 from debruijn.euler import assemble_eulerian, euler_condition
-from debruijn.contigs import unitigs
 from debruijn.pipeline import run_config
 import math
 
@@ -92,7 +91,7 @@ def test_mutations_middle_create_bubbles(n_mut):
     m = compute_metrics(g, genome)
     assert m["n_edges"] - m["true_kmers"] == K * n_mut       # k novel k-mers / error
     assert m["imbalance"] == 2 * n_mut                       # diverge + rejoin
-    assert m["branching"] == 2 * n_mut
+    assert g.degree_classes()["branching"] == 2 * n_mut
     assert m["dead_ends"] == 0
 
 
@@ -122,11 +121,12 @@ def test_repeat_collapse_threshold(R):
     genome = plant_repeats(random_genome(6000, seed=9), [{"length": R, "copies": 2}], seed=10)
     reads = tile_reads(genome, 120, step=3)
     for k in range(R - 4, R + 5):
-        m = compute_metrics(DeBruijnGraph.from_reads(reads, k), genome)
+        g = DeBruijnGraph.from_reads(reads, k)
+        m = compute_metrics(g, genome)
         # duplicate k-mers exist iff k <= R ...
         assert (m["repeat_collapse_frac"] > 0) == (k <= R), k
         # ... and the graph branches iff a (k-1)-mer node repeats, i.e. k <= R+1
-        assert (m["branching"] > 0) == (k <= R + 1), k
+        assert (g.degree_classes()["branching"] > 0) == (k <= R + 1), k
         # Euler circuit recovers the genome once no k-mer is collapsed (k > R).
         # At k = R+1 the repeat node is balanced (in=out=2) and, on a circle
         # with two copies, both Euler circuits spell the same cyclic genome.
@@ -159,12 +159,3 @@ def test_imbalance_matches_two_per_error():
         assert abs(m["imbalance"] - expected) / expected < 0.1
         # ~2 per realised error (errors < k apart in one read share a structure)
         assert 1.7 * m["n_errors"] <= m["imbalance"] <= 2 * m["n_errors"]
-
-
-def test_unitigs_cover_all_edges():
-    genome = random_genome(5000, seed=11)
-    reads, _ = simulate_reads(genome, 15, L, 0.002, seed=12)
-    g = DeBruijnGraph.from_reads(reads, K)
-    ctgs = unitigs(g)
-    n_edges = sum(len(s) if cyc else len(s) - (K - 1) for s, cyc in ctgs)
-    assert n_edges == g.n_edges

@@ -3,7 +3,7 @@
 A from-scratch Python implementation of De Bruijn graph assembly for the project
 *"Analyzing the Degradation of De Bruijn Graphs in Genome Assembly"*. It simulates reads
 from a reference genome, builds the De Bruijn graph, runs the Eulerian traversal
-(Pevzner et al. 2001), extracts contigs, and computes degradation metrics. Sweeps over
+(Pevzner et al. 2001), and computes degradation metrics. Sweeps over
 coverage `c`, error rate `e` and k-mer size `k` write raw CSV results for your own analysis.
 
 ## Quick start
@@ -22,8 +22,14 @@ python -m debruijn error      # error sweep     (fixed c, fixed k) configs/error
 python -m debruijn kmer       # k-mer sweep     (small e, high c)  configs/kmer_sweep.json
 ```
 
-Each sweep writes `results/<name>/results.csv` (one row per run with every metric, plus
-`x`, `series` and `replicate` columns) and a copy of the `config.json` that was used.
+Each sweep writes `results/<name>/results.csv` (one row per run) and a copy of the
+`config.json` that was used. Columns, in order:
+
+| group | columns |
+|---|---|
+| sweep coordinates and run settings | `x`, `series`, `replicate`, `k`, `coverage`, `error_rate`, `read_length`, `min_count`, `seed`, `genome_length`, `n_reads`, `n_errors`, `runtime_s` |
+| degradation index | `n_nodes`, `n_edges`, `components`, `imbalance`, `frag_term`, `imbalance_term`, `degradation` |
+| correctness checks | `reconstructed`, `dead_ends`, `true_kmers`, `missing_kmer_frac`, `spurious_kmer_frac`, `repeat_collapse_frac` |
 
 ### Configuring experiments
 
@@ -60,7 +66,7 @@ Configuration keys (defaults in `debruijn/pipeline.py`):
 | `error_rate` | per-base substitution probability `e` | 0 |
 | `k` | k-mer size (edges are k-mers, nodes are (k-1)-mers) | 31 |
 | `min_count` | k-mer frequency cutoff, 1 = off (the proposal's extension) | 1 |
-| `weights` | weights of the degradation index terms | equal |
+| `weights` | weights of the two degradation index terms | `{"frag": 0.5, "imbalance": 0.5}` |
 
 ## Pipeline
 
@@ -70,7 +76,6 @@ Configuration keys (defaults in `debruijn/pipeline.py`):
 | read sampling: uniform starts (Poisson / Lander-Waterman), i.i.d. substitutions | `debruijn/reads.py` |
 | De Bruijn graph: (k-1)-mer nodes, distinct k-mer edges, k-mer multiplicities | `debruijn/graph.py` |
 | Euler condition and Hierholzer's algorithm, run on each weakly connected component | `debruijn/euler.py` |
-| contigs = maximal non-branching paths (unitigs), NG50 | `debruijn/contigs.py` |
 | metrics and degradation index | `debruijn/metrics.py` |
 | sweeps, replicates, CSV output, CLI | `debruijn/sweep.py`, `__main__.py` |
 
@@ -81,33 +86,33 @@ Eulerian formulation, and it is what lets errors show up as imbalance.
 
 * `components`: number of weakly connected components `C`.
 * `imbalance`: `I = Σ_v |in(v) − out(v)|` (0 means every component has an Euler circuit).
-* `dead_ends` (tip ends, `in+out = 1`) and `branching` nodes (`in>1` or `out>1`).
-* `eulerian_frac`: fraction of components that satisfy the Euler condition.
-  `reconstructed` is true when the graph is a single component and its Euler path or
+* `dead_ends`: tip ends, nodes with `in+out = 1`.
+* `reconstructed`: true when the graph is a single component and its Euler path or
   circuit spells exactly the reference (up to rotation for a circular genome).
 * Ground-truth checks: `missing_kmer_frac` (coverage gaps), `spurious_kmer_frac`
   (error k-mers), `repeat_collapse_frac` (genome k-mers that occur more than once).
-* Contigs: `n_contigs`, `max_contig`, `ng50`.
 
-**Normalized degradation index.** Each term lies in [0, 1] and is exactly 0 in the ideal
-case (circular genome, all k-mers sampled, no errors, k above the longest repeat):
+**Normalized degradation index.** It combines the two structural metrics, connected
+components and graph imbalance, each normalized to [0, 1] and exactly 0 in the ideal case
+(circular genome, all k-mers sampled, no errors):
 
 ```
 frag       = ln C / ln |V|              weak fragmentation
 imbalance  = I / (2|E|)                 departure from Eulerian balance
-ambiguity  = B / |V|                    branching (collapsed repeats, bubbles, tips)
-contiguity = 1 − ln NG50 / ln G         contig contiguity loss
 
-D = w_f·frag + w_i·imbalance + w_a·ambiguity + w_c·contiguity      (Σw = 1, default 1/4 each)
+D = w_f·frag + w_i·imbalance            (w_f + w_i = 1, default 1/2 each)
 ```
 
-The fragmentation and contiguity terms are log-scaled because `C` and NG50 range over
-several orders of magnitude. With linear ratios (`1 − 1/C`, `1 − NG50/G`) the terms jump to
-about 1 after only a few breaks, and the curves become flat.
+The fragmentation term is log-scaled because `C` ranges over several orders of magnitude.
+With a linear ratio (`1 − 1/C`) the term jumps to about 1 after only a few breaks, and the
+curves become flat. The correctness-check metrics (`reconstructed`, `dead_ends`, k-mer
+fractions) are written to the CSV for the checks below but are not part of `D`.
 
 ## Correctness checks (`tests/test_correctness.py`)
 
-These are the checks listed in the proposal. All 20 tests pass.
+These are the checks listed in the proposal. All 19 tests pass. The branching-node count
+used in checks 2 and 3 comes from `DeBruijnGraph.degree_classes()`; it is only used by the
+tests and is not written to the CSV.
 
 1. **Error-free, high coverage.** One component; imbalance 0 for a circular genome (2 for
    a linear one: the start and end nodes); the Euler circuit spells the genome exactly;
@@ -122,7 +127,7 @@ These are the checks listed in the proposal. All 20 tests pass.
    balanced. With two copies on a circle, both Euler circuits spell the same cyclic genome.)
 4. **Invariants and theory.** Degree conservation (`Σin = Σout = |E|`); the component count
    decreases with coverage and is within 25 % of Lander-Waterman; the imbalance is about 2
-   per error; the unitigs cover every edge exactly once.
+   per error.
 
 ## Simplifications and known limitations
 

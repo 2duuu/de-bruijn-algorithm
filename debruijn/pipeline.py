@@ -19,7 +19,7 @@ DEFAULTS = {
     "k": 31,
     "min_count": 1,       # k-mer frequency cutoff (extension; 1 = off)
     "seed": 0,            # read-sampling seed (varied across replicates)
-    "weights": None,      # degradation-index weights, None = equal
+    "weights": None,      # degradation-index weights {"frag", "imbalance"}, None = 1/2 each
     "run_euler": True,
 }
 
@@ -40,7 +40,11 @@ def merge(base: dict, override: dict) -> dict:
 
 
 def run_config(cfg: dict) -> dict:
-    """Run the full pipeline for one parameter configuration and return metrics."""
+    """Run the full pipeline for one parameter configuration.
+
+    Returns run settings first, then the degradation-index metrics, then the
+    correctness-check metrics (the CSV columns follow this order).
+    """
     cfg = merge(DEFAULTS, cfg)
     gspec = cfg["genome"]
     circular = gspec.get("circular", True)
@@ -54,10 +58,10 @@ def run_config(cfg: dict) -> dict:
     g = DeBruijnGraph.from_reads(reads, cfg["k"], min_count=cfg["min_count"])
     m = compute_metrics(g, genome, circular=circular, weights=cfg["weights"],
                         run_euler=cfg["run_euler"])
-    m.update(
-        genome_length=len(genome), n_reads=info["n_reads"], n_errors=info["n_errors"],
+    settings = dict(
         k=cfg["k"], coverage=cfg["coverage"], error_rate=cfg["error_rate"],
         read_length=cfg["read_length"], min_count=cfg["min_count"], seed=cfg["seed"],
+        genome_length=len(genome), n_reads=info["n_reads"], n_errors=info["n_errors"],
         runtime_s=round(time.perf_counter() - t0, 3),
     )
-    return m
+    return {**settings, **m}

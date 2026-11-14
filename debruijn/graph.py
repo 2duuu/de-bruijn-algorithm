@@ -114,21 +114,16 @@ class DeBruijnGraph:
         """Count structural node types.
 
         * dead_ends: nodes with in+out == 1 (tip ends: source or sink of degree 1)
-        * sources / sinks: in == 0 / out == 0
-        * branching: in > 1 or out > 1 (ambiguous nodes: repeats, bubbles, tips)
+        * branching: in > 1 or out > 1 (repeats, bubbles, tips; used by the tests)
         """
-        dead = sources = sinks = branching = 0
+        dead = branching = 0
         for v, o in self.out_adj.items():
             i, out = self.in_degree(v), len(o)
             if i + out == 1:
                 dead += 1
-            if i == 0:
-                sources += 1
-            if out == 0:
-                sinks += 1
             if i > 1 or out > 1:
                 branching += 1
-        return {"dead_ends": dead, "sources": sources, "sinks": sinks, "branching": branching}
+        return {"dead_ends": dead, "branching": branching}
 
     def __repr__(self) -> str:
         return f"DeBruijnGraph(k={self.k}, nodes={self.n_nodes}, edges={self.n_edges})"
