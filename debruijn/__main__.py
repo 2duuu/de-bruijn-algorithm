@@ -6,6 +6,7 @@
     python -m debruijn all                 # the three presets
     python -m debruijn sweep my_sweep.json # any sweep config
     python -m debruijn run --k 31 --coverage 20 --error-rate 0.001
+    python -m debruijn plot                # figures from results/*/results.csv
 
 Common options: --replicates N, --jobs J, --out DIR, --set key=value
 (dotted keys reach into the base config, e.g. --set genome.length=20000,
@@ -63,7 +64,7 @@ def _run_sweep_file(path: str, args) -> None:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="debruijn", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=[*PRESETS, "all", "sweep", "run"])
+    ap.add_argument("command", choices=[*PRESETS, "all", "sweep", "run", "plot"])
     ap.add_argument("config", nargs="?", help="sweep config (for 'sweep')")
     ap.add_argument("--replicates", type=int)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 1))
@@ -93,6 +94,12 @@ def main(argv=None) -> int:
         width = max(map(len, m))
         for key, val in m.items():
             print(f"{key:<{width}}  {round(val, 6) if isinstance(val, float) else val}")
+        return 0
+
+    if args.command == "plot":
+        from .plots import plot_all
+        for p in plot_all(args.out):
+            print(f"   wrote {p}")
         return 0
 
     if args.command == "sweep":

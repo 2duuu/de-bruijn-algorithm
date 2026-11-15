@@ -22,6 +22,25 @@ python -m debruijn error      # error sweep     (fixed c, fixed k) configs/error
 python -m debruijn kmer       # k-mer sweep     (small e, high c)  configs/kmer_sweep.json
 ```
 
+Plot the three sweeps (needs `matplotlib`):
+
+```bash
+python -m debruijn plot       # -> results/plots/{1_components_vs_coverage,2_imbalance_vs_error_rate,3_degradation_vs_k}.{png,pdf}
+```
+
+Each point is the mean over replicates and the shaded band is ±1 standard deviation.
+
+Variants of a sweep saved as `results/<sweep>_<tag>` get their own figure with the same
+suffix; all k-mer sweep variants share one y-axis so they can be compared. For example,
+the k-mer sweep at other coverages:
+
+```bash
+for c in 10 15 20 25; do
+  python -m debruijn kmer --set coverage=$c --set name=kmer_sweep_c$c
+done
+python -m debruijn plot       # -> 3_degradation_vs_k_c10.png, ..._c15, ..._c20, ..._c25
+```
+
 Each sweep writes `results/<name>/results.csv` (one row per run) and a copy of the
 `config.json` that was used. Columns, in order:
 
