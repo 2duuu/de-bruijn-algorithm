@@ -218,7 +218,7 @@
   (function () {
     const lf = life();
     const STEPS = [["Reference genome", "λ phage · 48,502 bp", COL.cyan], ["Sample reads", "N = cG/L, uniform starts", COL.cyan], ["Inject errors", "substitution w.p. e / base", COL.orange],
-      ["Extract k-mers", "L − k + 1 per read", COL.purple], ["Build graph", "(k−1)-mer nodes, distinct k-mer edges", COL.teal], ["Measure", "C, I, D", COL.yellow]];
+      ["Extract k-mers", "L − k + 1 per read", COL.purple], ["Build graph", "(k−1)-mer nodes, distinct k-mer edges", COL.teal], ["Measure", "<b>C</b> = connected components<br><b>I</b> = imbalance Σ|in − out|<br><b>D</b> = degradation index", COL.yellow]];
     const READ = "GGGCGGCGACCTCGCGGGTT", K = 5;
     let view, pos, i = 0;
     Deck.add({
@@ -342,7 +342,7 @@
       html: `${head("Metric design", "Why we chose this metric", "How far is the graph from having an Euler tour?")}
       <div class="body" style="grid-template-columns:1fr 1.12fr;gap:30px">
         <div class="panel stack" style="padding:18px 24px">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h3 style="font-size:24px;margin:0">Repair it with the fewest new edges</h3><span class="tag sim">◆ Exact toy graph</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h3 style="font-size:24px;margin:0">Repair it with the fewest new edges</h3></div>
           <div data-g style="flex:1;min-height:0"></div>
           <div class="mono" style="font-size:22px;min-height:60px" data-rs></div>
           <div class="small" style="font-size:18px"><span class="c-red">●</span> in ≠ out &nbsp; <span class="c-yellow">┄</span> added edge: joins a node with in &gt; out to one with out &gt; in</div>
@@ -406,7 +406,7 @@
             <table class="data" style="font-size:21px"><tr><th>k</th><th>peak C</th><th>at c</th><th>C = 1 at</th><th>decay rate</th></tr>
             ${[[21, "1–1.5", 0.59], [31, "1.5", 0.5], [51, "2", 0.36]].map(([k, at, r]) => { const p = ser("coverage_sweep", k, "components"); const pk = Math.max(...p.map((q) => q.y)); const one = p.find((q) => q.y === 1).x; return `<tr><td>${k}</td><td>${Math.round(pk)}</td><td>${at}</td><td>${one}</td><td>${r.toFixed(2)}</td></tr>`; }).join("")}
             </table><div class="small" style="margin-top:8px">Exponential fits from c ≈ 2: R² = 0.988–0.997 (report)</div></div>
-          <div class="panel stack" style="flex:1;min-height:0;padding:16px 20px"><span class="tag sim panel-tag">◆ Simulation · toy</span><h3 style="font-size:23px">Interaction A · islands merge</h3><div data-demo style="flex:1;min-height:0"></div></div>
+          <div class="panel stack" style="flex:1;min-height:0;padding:16px 20px"><h3 style="font-size:23px">Interaction A · islands merge</h3><div data-demo style="flex:1;min-height:0"></div></div>
         </div>
       </div>`,
       enter(el) {
@@ -441,7 +441,7 @@
       html: `${head("Explanation · Lander–Waterman", "Why the curve rises first, then falls", "New reads first <b>create</b> islands, later they <b>connect</b> them.")}
       <div class="body cols-2" style="gap:30px">
         <div class="stack">
-          <div class="panel stack" style="flex:1;min-height:0;padding:16px 20px"><span class="tag sim panel-tag">◆ Simulation · toy</span><div class="small mono" data-stage>step through: few reads → peak → merge</div><div data-demo style="flex:1;min-height:0"></div></div>
+          <div class="panel stack" style="flex:1;min-height:0;padding:16px 20px"><div class="small mono" data-stage>step through: few reads → peak → merge</div><div data-demo style="flex:1;min-height:0"></div></div>
           <div class="panel" style="padding:18px 24px;display:grid;grid-template-columns:auto 1fr;gap:10px 28px;align-items:center">
             <span class="math mid"><i>N</i> ≈ <span class="frac"><span><i>cG</i></span><span><i>L</i></span></span></span><span class="small">reads sampled</span>
             <span class="math mid">islands ≈ <i>N</i> · e<sup>−<i>c</i>(<i>L</i>−<i>k</i>+1)/<i>L</i></sup></span><span class="small">reads not overlapped by the next k-mer-sharing read</span>
@@ -449,7 +449,7 @@
           </div>
         </div>
         <div class="stack">
-          ${chartPanel("cov7", "Solid: measured (5 replicates). Dotted: N·e^(−c(L−k+1)/L) with G = 48,502, L = 100 — no fitted parameters. Vertical: predicted c_peak.", null, '<span class="tag measured">● Measured</span> <span class="tag model">┄ Model</span>')}
+          ${chartPanel("cov7", "Solid: measured (5 replicates). Dotted: N·e^(−c(L−k+1)/L) with G = 48,502, L = 100 — no fitted parameters. Vertical: predicted c_peak.", null)}
           <div class="panel" style="padding:14px 22px;flex:none"><table class="data"><tr><th>k</th><th>c_peak predicted</th><th>peak observed at</th><th>height model</th><th>height measured</th></tr>
           ${peaks.map((p) => `<tr><td>${p.k}</td><td class="c-yellow">${p.cp.toFixed(2)}</td><td>${p.k === 21 ? "1–1.5" : p.obsAt}</td><td class="c-yellow">${Math.round(p.model)}</td><td>${Math.round(p.obs)}</td></tr>`).join("")}</table></div>
         </div>
@@ -471,7 +471,7 @@
       title: "Sequencing Error Experiment: Results", duration: 90, steps: 1,
       html: `${head("Experiment 2 · c = 30, k = 31", "Errors: monotonic, but bending", "<span class='verdict part'>PARTIALLY CONFIRMED</span>&nbsp; linear only while errors are sparse")}
       <div class="body cols-21" style="gap:30px">
-        ${chartPanel("err", "Mean of 5 replicates (sd bands too narrow to see). Dashed: isolated-error model I = 2 + 2 × (expected substitutions = N·L·e, N = 14,551).", "2_imbalance_vs_error_rate.png", '<span class="tag measured">● Measured · phage lambda</span> <span class="tag model">┄ Model</span>')}
+        ${chartPanel("err", "Mean of 5 replicates (sd bands too narrow to see). Dashed: isolated-error model I = 2 + 2 × (expected substitutions = N·L·e, N = 14,551).", "2_imbalance_vs_error_rate.png", '<span class="tag measured">● Measured · phage lambda NC_001416.1</span> <span class="tag model">┄ Model</span>')}
         <div class="stack">
           <div class="panel" style="padding:18px 24px"><h3 style="font-size:24px">Imbalance per substitution <span class="small">(I − 2) / #errors</span></h3>
             ${perErr.filter((p) => [0.0005, 0.001, 0.005, 0.01, 0.02].includes(p.e)).map((p) => `<div style="display:grid;grid-template-columns:90px 1fr 70px;gap:14px;align-items:center;margin:9px 0"><span class="mono" style="font-size:22px">${(p.e * 100).toFixed(2).replace(/0$/, "")}%</span><div style="height:22px;background:#152038;border-radius:6px;overflow:hidden"><div style="width:${p.v / 2 * 100}%;height:100%;background:linear-gradient(90deg,${COL.orange},${COL.red})"></div></div><span class="mono" style="font-size:22px">${p.v.toFixed(2)}</span></div>`).join("")}
@@ -551,7 +551,7 @@
     Deck.add({
       title: "Why Error Growth Becomes Sublinear", duration: 90, steps: 0,
       html: `${head("Explanation · overlapping error windows", "Why error growth becomes sublinear", "Errors closer than k share one bubble: together they add 2, not 4.")}
-      <div class="panel" style="flex:1;min-height:0;padding:18px 26px"><span class="tag sim panel-tag" style="top:24px;font-size:13px;padding:4px 10px;gap:6px">◆ Simulation · toy · Interaction B</span><div data-demo style="height:100%"></div></div>`,
+      <div class="panel" style="flex:1;min-height:0;padding:18px 26px"><div data-demo style="height:100%"></div></div>`,
       enter(el) { demo = Viz.ErrorDemo(el.querySelector("[data-demo]")); },
       leave() { demo && demo.destroy(); },
       reset() { demo && demo.reset(); },
@@ -784,7 +784,7 @@
     let demo;
     Deck.add({
       title: "An Eulerian Path Exists, but It Is Not Unique", duration: 45, steps: 0,
-      html: `${head("Interaction D · exact small graphs · same score, very different ambiguity", 'An Eulerian path <span class="c-cyan">exists</span>, but it is <span class="c-purple glow-purple">not unique</span>', '<span class="tag sim">◆ Illustration · not the genome</span>')}
+      html: `${head("Interaction D · exact small graphs · same score, very different ambiguity", 'An Eulerian path <span class="c-cyan">exists</span>, but it is <span class="c-purple glow-purple">not unique</span>', "")}
         <div data-demo style="flex:1;min-height:0"></div>
         <div style="font-size:24px;text-align:center;margin-top:14px" class="muted">Every traversal uses each distinct 2-mer exactly once — all are equally valid reconstructions. Count by exhaustive enumeration (BEST theorem: (4!)⁴ / 4² = 20,736).</div>`,
       enter(el) { demo = Viz.ParadoxDemo(el.querySelector("[data-demo]")); },
@@ -809,7 +809,7 @@
             <span class="math mid">4<sup><i>k</i></sup> ≪ <i>G</i></span> ⇒ almost every possible k-mer occurs ⇒ graph ≈ complete ⇒ <span class="c-cyan">C = 1</span>, <span class="c-cyan">I = 0</span> ⇒ <span class="c-cyan">D = 0</span>.<br>
             <span class="muted">Errors add nothing: every erroneous k-mer already exists. At k = 6, 43 of 4,096 6-mers never occur in lambda (under-used k-mers) → small I.</span></div>
         </div>
-        <div class="panel stack" style="padding:16px 22px"><span class="tag sim panel-tag">◆ Simulation · Interaction C</span><h3 style="font-size:23px">Explore k on 210 bp of lambda</h3><div data-demo style="flex:1;min-height:0"></div></div>
+        <div class="panel stack" style="padding:16px 22px"><h3 style="font-size:23px">Explore k on 210 bp of lambda</h3><div data-demo style="flex:1;min-height:0"></div></div>
       </div>
       <div data-step="1" style="text-align:center;font-size:40px;font-weight:650;margin-top:18px">“Connected and balanced does <span class="c-purple">not</span> mean uniquely reconstructable.”</div>`,
       enter(el) { demo = Viz.KDemo(el.querySelector("[data-demo]")); },
@@ -848,7 +848,7 @@
       title: "Why the Peak Occurs Near k = 8", duration: 60, steps: 1,
       html: `${head("Explanation", "Why the peak sits near k = 8", "Imbalance peaks when the graph is about <b>half full</b>: 4ᵏ ≈ G.")}
       <div class="body cols-2" style="gap:30px">
-        ${chartPanel("pow", "4ᵏ grows past the genome length between k = 7 and 8.", null, '<span class="tag model">┄ Arithmetic</span>')}
+        ${chartPanel("pow", "4ᵏ grows past the genome length between k = 7 and 8.", null, "")}
         ${chartPanel("dk", "Measured: lambda, c = 30, 3 replicates, ±1 sd. Peak at k = 8–9 at every coverage (10–30).", null)}
       </div>
       <div style="text-align:center;margin-top:20px"><span class="math big">4<sup><i>k</i></sup> ≈ <i>G</i> &nbsp;⇒&nbsp; <i>k</i> ≈ log<sub>4</sub> <i>G</i> = log<sub>4</sub> 48,502 ≈ <span class="c-cyan">${kx.toFixed(1)}</span></span>
