@@ -183,7 +183,7 @@ body.show-help #help { display: grid; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
 .pulse { animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
-.pop { animation: pop .6s cubic-bezier(.2,.8,.2,1) both; }
+.pop:not(.hidden-step) { animation: pop .6s cubic-bezier(.2,.8,.2,1) both; } /* only animate once revealed, so it never flashes on slide entry */
 .glow-purple { text-shadow: 0 0 40px #b57bff88; }
 .glow-cyan { text-shadow: 0 0 40px #2ee6d688; }
 
