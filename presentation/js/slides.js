@@ -224,24 +224,24 @@
     Deck.add({
       title: "Research Pipeline", duration: 60, steps: 0,
       html: `${head("Method", "Research pipeline", "Same pipeline for every sweep; only <span class='c-cyan'>c</span>, <span class='c-orange'>e</span> or <span class='c-purple'>k</span> changes.")}
-      <div style="display:flex;gap:14px;align-items:stretch" data-pipe>
-        ${STEPS.map((s, j) => `<div class="panel" data-ps="${j}" style="flex:1;padding:18px 18px;transition:border-color .3s, box-shadow .3s"><div class="mono" style="font-size:16px;color:${s[2]}">0${j + 1}</div><div style="font-size:25px;font-weight:600;margin:4px 0">${s[0]}</div><div class="small" style="font-size:18px">${s[1]}</div></div>${j < 5 ? '<div style="align-self:center;color:#3a4b6b;font-size:30px">→</div>' : ""}`).join("")}
+      <div style="display:flex;gap:12px;align-items:stretch" data-pipe>
+        ${STEPS.map((s, j) => `<div class="panel" data-ps="${j}" style="flex:1;min-height:200px;padding:26px 22px;transition:border-color .3s, box-shadow .3s"><div class="mono" style="font-size:20px;color:${s[2]}">0${j + 1}</div><div style="font-size:31px;font-weight:650;line-height:1.15;margin:6px 0 8px">${s[0]}</div><div class="small" style="font-size:20px;line-height:1.35">${s[1]}</div></div>${j < 5 ? '<div style="align-self:center;color:#3a4b6b;font-size:36px">→</div>' : ""}`).join("")}
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:34px;margin-top:28px;flex:1;min-height:0">
-        <div class="stack">
-          <div class="stats" style="grid-template-columns:repeat(3,1fr)">
-            <div class="stat"><div class="k">genome G</div><div class="v" style="font-size:30px">48,502 bp</div></div>
-            <div class="stat"><div class="k">read length L</div><div class="v" style="font-size:30px">100 bp</div></div>
-            <div class="stat"><div class="k">replicates</div><div class="v" style="font-size:30px">5 · 5 · 3</div></div>
-            <div class="stat"><div class="k">coverage c</div><div class="v c-cyan" style="font-size:30px">0.5 – 30</div></div>
-            <div class="stat"><div class="k">error e</div><div class="v c-orange" style="font-size:30px">0 – 2%</div></div>
-            <div class="stat"><div class="k">k-mer k</div><div class="v c-purple" style="font-size:30px">4 – 95</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:30px;margin-top:24px;flex:1;min-height:0">
+        <div class="stack" style="gap:16px">
+          <div class="stats" style="grid-template-columns:repeat(3,1fr);gap:12px">
+            <div class="stat" style="padding:10px 16px"><div class="k">genome G</div><div class="v" style="font-size:26px">48,502 bp</div></div>
+            <div class="stat" style="padding:10px 16px"><div class="k">read length L</div><div class="v" style="font-size:26px">100 bp</div></div>
+            <div class="stat" style="padding:10px 16px"><div class="k">replicates</div><div class="v" style="font-size:26px">5 · 5 · 3</div></div>
+            <div class="stat" style="padding:10px 16px"><div class="k">coverage c</div><div class="v c-cyan" style="font-size:26px">0.5 – 30</div></div>
+            <div class="stat" style="padding:10px 16px"><div class="k">error e</div><div class="v c-orange" style="font-size:26px">0 – 2%</div></div>
+            <div class="stat" style="padding:10px 16px"><div class="k">k-mer k</div><div class="v c-purple" style="font-size:26px">4 – 95</div></div>
           </div>
-          <div class="small">Enterobacteria phage lambda, NCBI NC_001416.1 · linear dsDNA · 49.9% GC · forward-strand reads · i.i.d. substitutions. Replicates: coverage 5, error 5, k-mer 3.</div>
-          <div class="panel" style="padding:18px 22px">
-            <div class="small mono" style="margin-bottom:10px">example read (first 20 bp of λ) · k = ${K}</div>
+          <div class="small" style="font-size:19px">Enterobacteria phage lambda, NCBI NC_001416.1 · linear dsDNA · 49.9% GC · forward-strand reads · i.i.d. substitutions. Replicates: coverage 5, error 5, k-mer 3.</div>
+          <div class="panel" style="padding:14px 20px">
+            <div class="small mono" style="margin-bottom:8px">example read (first 20 bp of λ) · k = ${K}</div>
             <div class="dna sm" data-read>${READ.split("").map((b) => `<span>${b}</span>`).join("")}</div>
-            <div class="mono" style="font-size:26px;margin-top:16px" data-km></div>
+            <div class="mono" style="font-size:24px;margin-top:12px" data-km></div>
           </div>
         </div>
         <div class="panel stack" style="padding:16px 20px"><div class="small">distinct-edge graph growing window by window — repeated (k−1)-mers <span class="c-purple">GGCG</span>, <span class="c-purple">GCGG</span> reuse a node</div><div data-g style="flex:1;min-height:0"></div></div>
@@ -411,7 +411,7 @@
       </div>`,
       enter(el) {
         bindCharts(el, { cov: (b) => covChart(b) });
-        demo = Viz.CoverageDemo(el.querySelector("[data-demo]"));
+        demo = Viz.PileupDemo(el.querySelector("[data-demo]"));
       },
       leave() { demo && demo.destroy(); },
       toggle() { demo && demo.toggle(); }, reset() { demo && demo.reset(); },
@@ -454,7 +454,7 @@
           ${peaks.map((p) => `<tr><td>${p.k}</td><td class="c-yellow">${p.cp.toFixed(2)}</td><td>${p.k === 21 ? "1–1.5" : p.obsAt}</td><td class="c-yellow">${Math.round(p.model)}</td><td>${Math.round(p.obs)}</td></tr>`).join("")}</table></div>
         </div>
       </div>`,
-      enter(el) { el0 = el; demo = Viz.CoverageDemo(el.querySelector("[data-demo]")); draw(Deck.step); },
+      enter(el) { el0 = el; demo = Viz.PileupDemo(el.querySelector("[data-demo]")); draw(Deck.step); },
       onStep(s) { if (el0 && el0.classList.contains("active")) { draw(s); const t = el0.querySelector("[data-stage]"); if (t) t.textContent = s ? `stage ${s}/3 · ${STAGE[s].label} (toy c = ${STAGE[s].c})` : "step through: few reads → peak → merge"; } },
       leave() { demo && demo.destroy(); },
       toggle() { demo && demo.toggle(); }, reset() { demo && demo.reset(); },
