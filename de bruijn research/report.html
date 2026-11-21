@@ -1,0 +1,342 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>De Bruijn Sweep Findings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: one reading column (~68ch) like a lab write-up; figures span the column, the
+   coverage variants of plot 3 sit in a 2x2 grid that stacks on phones. */
+:root {
+  --bg: #f7f8f9;
+  --paper: #ffffff;
+  --ink: #14181d;
+  --ink-2: #4a525c;
+  --muted: #7a838d;
+  --rule: #dfe3e8;
+  --accent: #2a78d6;
+  --accent-soft: #e7f0fb;
+  --hit: #1a7f4b;
+  --hit-soft: #e5f4ec;
+  --part: #9a6200;
+  --part-soft: #fbf1dc;
+  --shock: #c2412d;
+  --shock-soft: #fbe9e5;
+  --font-display: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.5rem;
+  --step-3: 2.125rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --paper: #181c21; --ink: #e8ebee; --ink-2: #b4bcc5; --muted: #8a939d;
+    --rule: #2b3139; --accent: #5598e7; --accent-soft: #17263a;
+    --hit: #4cc38a; --hit-soft: #132a1f; --part: #e0a83a; --part-soft: #2c2412;
+    --shock: #f07a64; --shock-soft: #33191440;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111418; --paper: #181c21; --ink: #e8ebee; --ink-2: #b4bcc5; --muted: #8a939d;
+  --rule: #2b3139; --accent: #5598e7; --accent-soft: #17263a;
+  --hit: #4cc38a; --hit-soft: #132a1f; --part: #e0a83a; --part-soft: #2c2412;
+  --shock: #f07a64; --shock-soft: #33191440;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+}
+.page {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding-block: 3rem 4rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 2.75rem;
+}
+header { display: flex; flex-direction: column; gap: 0.75rem; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: var(--step-3); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: var(--step-2); font-weight: 600; }
+h3 { font-size: var(--step-1); font-weight: 600; }
+p { margin: 0; }
+.lede { font-size: var(--step-1); color: var(--ink-2); line-height: 1.5; }
+section { display: flex; flex-direction: column; gap: 1rem; }
+.section-head { display: flex; flex-direction: column; gap: 0.35rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
+.section-head .eyebrow { color: var(--accent); }
+ul { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; }
+code, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+.formula {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.5;
+}
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; color: var(--ink-2); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+.verdict {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.v-hit { color: var(--hit); background: var(--hit-soft); }
+.v-part { color: var(--part); background: var(--part-soft); }
+.v-shock { color: var(--shock); background: var(--shock-soft); }
+figure { margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+figure img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: #fcfcfb;
+}
+figcaption { font-size: var(--step--1); color: var(--muted); }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+@media (max-width: 560px) { .grid-2 { grid-template-columns: 1fr; } }
+.obs { display: flex; flex-direction: column; gap: 0.5rem; }
+.why {
+  border-left: 3px solid var(--accent);
+  padding: 0.1rem 0 0.1rem 0.9rem;
+  color: var(--ink-2);
+}
+.why b { color: var(--ink); font-weight: 600; }
+.shock-box {
+  background: var(--shock-soft);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1.25rem 1.25rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.shock-box h3 { color: var(--shock); }
+.shock-box .why { border-left-color: var(--shock); }
+.next { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.75rem; }
+.next > div { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.next h3 { font-size: var(--step-0); }
+.next p { font-size: 0.92rem; color: var(--ink-2); }
+footer { font-size: var(--step--1); color: var(--muted); border-top: 1px solid var(--rule); padding-top: 1rem; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<main class="page">
+
+<header>
+  <div class="eyebrow">AADS research · pre-defense sweeps · Tudor Pisica, Andrei Stan</div>
+  <h1>De Bruijn Sweep Findings</h1>
+  <p class="lede">What the three core sweeps showed on a real reference genome, bacteriophage lambda, why each result looks the way it does, and the surprise in the k-mer sweep: the degradation index drops to zero when k is very small.</p>
+</header>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Summary</div>
+    <h2>Predictions against results</h2>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prediction from the proposal</th><th>Result on phage lambda</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Components decay exponentially toward one as coverage grows</td><td>Straight line on a log axis from c ≈ 2 (R² 0.99–1.00), one component from c = 12–20</td><td><span class="verdict v-hit">Confirmed</span></td></tr>
+        <tr><td>Imbalance rises linearly with the error rate</td><td>Always rising; linear only up to about 0.1%, then it bends</td><td><span class="verdict v-part">Partly</span></td></tr>
+        <tr><td>U-shaped degradation vs k when errors are present</td><td>Asymmetric U for k ≥ 8; for k ≤ 6 the index falls back to about 0</td><td><span class="verdict v-part">Partly</span></td></tr>
+        <tr><td>Without errors: flat at high coverage, rising with k at low coverage</td><td>D ≈ 0 from k ≈ 13 up to a threshold that moves from k = 31 (c = 10) to k = 81 (c = 30)</td><td><span class="verdict v-hit">Confirmed</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Setup</div>
+    <h2>Reference genome and runs</h2>
+  </div>
+  <ul>
+    <li>Reference: <b>Enterobacteria phage lambda</b>, NCBI RefSeq <span class="mono">NC_001416.1</span>, the virus that infects <i>E. coli</i>. Complete genome, 48,502 bp of linear double-stranded DNA, 49.9% GC, only A/C/G/T. It has almost no exact repeats: above k = 15 fewer than 0.01% of its k-mers occur twice.</li>
+    <li>Reads: length L = 100, uniform start positions (Lander–Waterman), forward strand, independent substitution errors at rate e per base.</li>
+    <li>Graph: nodes are (k−1)-mers, each distinct k-mer is one edge. Every point is the mean over 5 replicates (3 for the k-mer sweeps); the shaded band is ±1 standard deviation.</li>
+  </ul>
+  <p>The normalized degradation index combines our two structural metrics, each scaled to [0, 1]:</p>
+  <div class="formula">D = ½ · ln C / ln |V|  +  ½ · I / (2|E|)
+
+C = connected components     |V| = nodes ((k−1)-mers)
+I = Σ |in(v) − out(v)|       |E| = edges (distinct k-mers)</div>
+  <p>2|E| is the largest imbalance a graph with |E| edges can have, and C can range from 1 to |V|, so both terms are 0 for a perfect assembly and 1 at the worst. The component term is logarithmic because C changes over several orders of magnitude. Lambda is linear, so even a perfect assembly has an imbalance of 2 (its first and last node). D is then about 0.00001 rather than exactly 0.</p>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Plot 1 · coverage sweep, e = 0</div>
+    <h2>Connected components vs coverage</h2>
+  </div>
+  <figure>
+    <img src="lambda/plots/1_components_vs_coverage.png" alt="Line chart of connected components (log scale) against coverage depth 0.5 to 30 on phage lambda for k = 21, 31 and 51. Each line rises to a peak near c = 1 to 2, falls along a straight line on the log axis, and reaches one component at c = 12, 15 and 20 respectively." width="1400" height="880">
+    <figcaption>Log y-axis: a straight falling line means exponential decay.</figcaption>
+  </figure>
+  <div class="obs">
+    <h3>The decay is exponential, and larger k decays more slowly</h3>
+    <p>From c ≈ 2 onward each line is straight on the log axis (R² 0.988–0.997). The graph becomes a single component at c = 12 for k = 21, c = 15 for k = 31 and c = 20 for k = 51.</p>
+    <p class="why"><b>Why:</b> a read of length L holds only L − k + 1 k-mers, so the coverage that matters is the k-mer coverage c·(L − k + 1)/L. Lander–Waterman predicts the number of gaps falls like e<sup>−c(L−k+1)/L</sup>. The measured decay rates are 0.59, 0.50 and 0.36 per unit of coverage, in the ratio 1 : 0.84 : 0.61. Theory gives (L − k + 1) = 80 : 70 : 50, or 1 : 0.875 : 0.625.</p>
+  </div>
+  <div class="obs">
+    <h3>At very low coverage the count first goes up</h3>
+    <p>The component count peaks at c ≈ 1–1.5 for k = 21, c = 1.5 for k = 31 and c = 2 for k = 51 (216, 252 and 360 components), and only then falls.</p>
+    <p class="why"><b>Why:</b> the number of islands is roughly N·e<sup>−c(L−k+1)/L</sup> with N = cG/L reads. With very few reads, each new read starts a new island, so the count grows. It peaks at c = L/(L − k + 1), which gives 1.25, 1.43 and 2.0 for our three k values, matching the observed peaks.</p>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Plot 2 · error sweep, c = 30, k = 31</div>
+    <h2>Graph imbalance vs error rate</h2>
+  </div>
+  <figure>
+    <img src="lambda/plots/2_imbalance_vs_error_rate.png" alt="Line chart of graph imbalance against error rate 0 to 2 percent on phage lambda. The line starts straight and bends downward, reaching about 30,500 at 2 percent." width="1400" height="880">
+    <figcaption>One line: mean over 5 replicates.</figcaption>
+  </figure>
+  <div class="obs">
+    <h3>Each isolated error adds exactly 2 to the imbalance</h3>
+    <p>At e = 0.05% the imbalance per error is 1.95 (after subtracting the 2 that the linear genome has anyway).</p>
+    <p class="why"><b>Why:</b> an error in the middle of a read creates a bubble. The path leaves the true graph at one node (out-degree 2) and rejoins at another (in-degree 2), so two nodes are each off by one. An error near the read end creates a tip, which also unbalances two nodes. The correctness tests check this exactly for 0 to 50 planted errors.</p>
+  </div>
+  <div class="obs">
+    <h3>The growth is linear only at low error rates</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="num">error rate e</th><th class="num">0.05%</th><th class="num">0.1%</th><th class="num">0.5%</th><th class="num">1%</th><th class="num">2%</th></tr></thead>
+        <tbody>
+          <tr><td>imbalance per error</td><td class="num">1.95</td><td class="num">1.91</td><td class="num">1.63</td><td class="num">1.37</td><td class="num">1.05</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="why"><b>Why:</b> two errors closer than k bases in the same read share one bubble or tip, so together they add 2, not 4. The chance that an error has another error within k − 1 bases on either side is 1 − (1 − e)<sup>2(k−1)</sup>: about 6% at e = 0.1%, but 70% at e = 2%. The prediction holds as "monotonic, and linear while errors are sparse".</p>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Plot 3 · k-mer sweep</div>
+    <h2>Normalized degradation vs k</h2>
+  </div>
+  <figure>
+    <img src="lambda/plots/3_degradation_vs_k.png" alt="Line chart of degradation index against k-mer size 4 to 95 on phage lambda at coverage 30 for error rates 0, 0.001 and 0.005. About zero for k up to 6, a bump of about 0.05 at k = 8 to 9, near zero from about k = 13 to 31, then a steep rise to 0.38 to 0.46 at k = 95." width="1400" height="880">
+    <figcaption>Coverage c = 30. Log x-axis.</figcaption>
+  </figure>
+  <div class="grid-2">
+    <figure>
+      <img src="lambda/plots/3_degradation_vs_k_c10.png" alt="Degradation vs k on phage lambda at coverage 10." width="1400" height="880">
+      <figcaption>c = 10</figcaption>
+    </figure>
+    <figure>
+      <img src="lambda/plots/3_degradation_vs_k_c15.png" alt="Degradation vs k on phage lambda at coverage 15." width="1400" height="880">
+      <figcaption>c = 15</figcaption>
+    </figure>
+    <figure>
+      <img src="lambda/plots/3_degradation_vs_k_c20.png" alt="Degradation vs k on phage lambda at coverage 20." width="1400" height="880">
+      <figcaption>c = 20</figcaption>
+    </figure>
+    <figure>
+      <img src="lambda/plots/3_degradation_vs_k_c25.png" alt="Degradation vs k on phage lambda at coverage 25." width="1400" height="880">
+      <figcaption>c = 25</figcaption>
+    </figure>
+  </div>
+  <p>All five k-mer plots share one y-axis and use k from 4 to 95.</p>
+
+  <div class="obs">
+    <h3>The U is there, but lopsided</h3>
+    <p>D has a small peak at k = 8–9 (about 0.05), a valley at k ≈ 13–31 (about 0 without errors, 0.009–0.017 with errors at c = 30), and a steep rise at large k (0.38–0.47 at k = 95).</p>
+    <p class="why"><b>Why:</b> the two sides are driven by different terms. On the left only the imbalance term is active, and I/(2|E|) stays small because most nodes stay balanced. On the right the component term takes over. It is logarithmic and reaches about 0.8 when the graph shatters into thousands of pieces. Lambda has no exact repeats long enough to matter above k ≈ 15, so the left side comes from short k-mers that recur by chance, not from long repeats.</p>
+  </div>
+
+  <div class="obs">
+    <h3>Coverage moves the right side, not the left</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>coverage c</th><th class="num">10</th><th class="num">15</th><th class="num">20</th><th class="num">25</th><th class="num">30</th></tr></thead>
+        <tbody>
+          <tr><td>first k with D &gt; 0.05 (e = 0)</td><td class="num">31</td><td class="num">51</td><td class="num">61</td><td class="num">71</td><td class="num">81</td></tr>
+          <tr><td>first k with D &gt; 0.05 (e = 0.005)</td><td class="num">25</td><td class="num">31</td><td class="num">31</td><td class="num">31</td><td class="num">31</td></tr>
+          <tr><td>peak D at k = 8 (e = 0.001)</td><td class="num">0.051</td><td class="num">0.051</td><td class="num">0.051</td><td class="num">0.051</td><td class="num">0.051</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="why"><b>Why:</b> on the right, fragmentation comes from coverage gaps. At k = 95 a read has only 6 k-mers, so at c = 10 more than half of lambda's k-mers are never sampled (55% missing). More coverage pushes that point to larger k. Errors pull it back: a k-mer is read correctly only with probability (1 − e)<sup>k</sup>, so errors reduce the usable coverage, and the more so the larger k is. On the left, coverage does nothing, because the effect there depends on genome length, as the next part shows.</p>
+    <p class="why"><b>The step at c = 10:</b> from k = 17 the c = 10 curve sits at about 0.02 even without errors. In 2 of the 3 replicates one region of lambda is covered by reads that overlap by fewer than 16 bases, so the graph splits into 2 components. One break already gives ½·ln 2 / ln |V| ≈ 0.03, because the log term counts the first breaks the most.</p>
+  </div>
+
+  <div class="shock-box">
+    <div class="eyebrow" style="color: var(--shock)">What surprised us</div>
+    <h3>For k ≤ 6 the index says the assembly is near-perfect, when it is the worst</h3>
+    <p>At every coverage (10 to 30) and every error rate, D is <b>exactly 0</b> for k = 4 and 5 and at most 0.003 for k = 6. We expected small k to give the highest degradation, from k-mers collapsing into tangles. Instead the curve climbs from about 0 at k = 6 to its peak at k = 8 and drops again.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="num">k</th><th class="num">possible k-mers 4<sup>k</sup></th><th class="num">edges in graph |E|</th><th class="num">C</th><th class="num">I</th><th class="num">genome k-mers collapsed</th><th class="num">D</th></tr></thead>
+        <tbody>
+          <tr><td class="num">4</td><td class="num">256</td><td class="num">256</td><td class="num">1</td><td class="num">0</td><td class="num">99.5%</td><td class="num">0</td></tr>
+          <tr><td class="num">5</td><td class="num">1,024</td><td class="num">1,024</td><td class="num">1</td><td class="num">0</td><td class="num">97.9%</td><td class="num">0</td></tr>
+          <tr><td class="num">6</td><td class="num">4,096</td><td class="num">4,062</td><td class="num">1</td><td class="num">36</td><td class="num">91.6%</td><td class="num">0.002</td></tr>
+          <tr><td class="num">7</td><td class="num">16,384</td><td class="num">14,290</td><td class="num">1</td><td class="num">1,458</td><td class="num">71.2%</td><td class="num">0.026</td></tr>
+          <tr><td class="num">8</td><td class="num">65,536</td><td class="num">32,077</td><td class="num">1</td><td class="num">6,548</td><td class="num">37.4%</td><td class="num">0.051</td></tr>
+          <tr><td class="num">9</td><td class="num">262,144</td><td class="num">45,218</td><td class="num">1</td><td class="num">6,518</td><td class="num">13.8%</td><td class="num">0.036</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size: var(--step--1); color: var(--ink-2)">Phage lambda, c = 10, e = 0.001. |E|, C and I come from one replicate; D is the replicate mean. "Collapsed" is 1 − (distinct genome k-mers ÷ genome positions): the share of positions that reuse a k-mer already seen.</p>
+    <p class="why"><b>Why:</b> a 48.5 kb genome contains almost every possible k-mer once 4<sup>k</sup> is far below its length. The graph then becomes the <i>complete</i> de Bruijn graph: every (k−1)-mer has exactly 4 edges in and 4 out, so I = 0, and everything is connected, so C = 1. Both terms of D are 0. Errors cannot add anything either, because every erroneous k-mer already exists in the graph. The genome cannot be read back from this graph (no reconstruction succeeds), yet components and imbalance cannot tell.</p>
+    <p class="why"><b>Why k = 6 is not quite 0:</b> lambda's sequence contains only 4,053 of the 4,096 possible 6-mers, so 43 never occur. Real genomes under-use certain short motifs; phages in particular are known to carry fewer copies of some restriction-enzyme recognition sites than chance would predict. With those words missing, the graph is almost but not exactly complete, which leaves a small imbalance (36 here).</p>
+    <p class="why"><b>Why the peak sits at k = 8 at every coverage:</b> imbalance is highest when the graph is about half full, so that many nodes get an uneven mix of in- and out-edges. That happens near 4<sup>k</sup> ≈ G, i.e. k ≈ log₄ 48,502 ≈ 7.8. The position depends on genome length, not coverage. For a 4.6 Mb <i>E. coli</i> chromosome it would move to about k ≈ 11.</p>
+    <p class="why"><b>What it means:</b> our index measures whether the graph is connected and balanced (whether an Euler path exists), not whether that path is unique. Collapsed k-mers make many Euler paths possible without breaking either property. So the U-shape holds only for k above about log₄ G, and below that the index is blind to the main failure.</p>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <div class="eyebrow">Next</div>
+    <h2>Options for the defense</h2>
+  </div>
+  <div class="next">
+    <div><h3>Keep the index, state its range</h3><p>Start the k sweep at k = 8 and say the U-shape holds for k above log₄ G. Show the k ≤ 6 collapse as a known limitation.</p></div>
+    <div><h3>Add an ambiguity term</h3><p>A branching-node term (nodes with in &gt; 1 or out &gt; 1) rises at small k and would give the left side of the U. It changes the formula we proposed.</p></div>
+    <div><h3>Test the log₄ G claim</h3><p>Rerun the k-mer sweep on a larger real genome, such as the 4.6 Mb <i>E. coli</i> chromosome. The small-k peak should move from k ≈ 8 to about k ≈ 11. Each run is about 100 times more work.</p></div>
+  </div>
+</section>
+
+<footer>Reference: phage lambda, <span class="mono">data/phage_lambda/NC_001416.fasta</span>. Results in <span class="mono">results/lambda/</span>, made with <span class="mono">python -m debruijn &lt;sweep&gt; --out results/lambda --set genome.fasta=… --set genome.length=null --set genome.circular=false</span> and <span class="mono">python -m debruijn plot --out results/lambda</span>. Numbers are replicate means unless marked otherwise.</footer>
+
+</main>

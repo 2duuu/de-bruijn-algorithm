@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>When De Bruijn Graphs Break</title>
+<meta name="description" content="Analyzing the Degradation of De Bruijn Graphs in Genome Assembly — Tudor Pisica & Andrei Stan">
+<link rel="stylesheet" href="css/deck.css">
+</head>
+<body>
+<div id="progress"></div>
+<div id="viewport"><div id="stage"></div></div>
+
+<div id="chrome" aria-label="Presentation controls">
+  <button id="b-prev" title="Previous (←)">◀</button>
+  <span class="count" id="count">1 / 16</span>
+  <button id="b-next" title="Next (→ / Space)">▶</button>
+  <button id="b-play" title="Play / pause demo (K)">⏯ Play</button>
+  <button id="b-reset" title="Reset demo (R)">↺ Reset</button>
+  <span class="timer" id="timer" title="Elapsed (T resets)">0:00</span>
+  <button id="b-notes" title="Notes overlay (N)">Notes</button>
+  <button id="b-pres" title="Presenter window (P)">Presenter</button>
+  <button id="b-fs" title="Fullscreen (F)">⛶</button>
+  <button id="b-help" title="Keyboard help (?)">?</button>
+</div>
+<div id="notes"></div>
+<div id="help"><div class="box">
+  <kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd> next step / slide &nbsp; <kbd>←</kbd> <kbd>PgUp</kbd> back<br>
+  <kbd>F</kbd> fullscreen &nbsp; <kbd>N</kbd> notes overlay &nbsp; <kbd>P</kbd> presenter window<br>
+  <kbd>K</kbd> play / pause the slide's animation &nbsp; <kbd>R</kbd> reset the slide's demo<br>
+  <kbd>T</kbd> restart the timer &nbsp; <kbd>Home</kbd>/<kbd>End</kbd> first / last slide &nbsp; <kbd>Esc</kbd> close overlays
+</div></div>
+
+<script src="data/lambda-data.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/toy-graph.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/deck.js"></script>
+<script src="js/viz.js"></script>
+<script src="js/slides.js"></script>
+<script>Deck.init();</script>
+</body>
+</html>

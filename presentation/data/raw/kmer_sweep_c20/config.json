@@ -1,0 +1,70 @@
+{
+  "name": "kmer_sweep_c20",
+  "description": "High coverage, small error rate; vary k. Genome has planted exact repeats of 15-60 bp. Expect a U-shaped degradation curve when errors are present.",
+  "base": {
+    "genome": {
+      "length": null,
+      "seed": 0,
+      "circular": false,
+      "repeats": [
+        {
+          "length": 15,
+          "copies": 4
+        },
+        {
+          "length": 25,
+          "copies": 3
+        },
+        {
+          "length": 40,
+          "copies": 3
+        },
+        {
+          "length": 60,
+          "copies": 2
+        }
+      ],
+      "fasta": "data/phage_lambda/NC_001416.fasta",
+      "label": "Phage lambda (infects E. coli)"
+    },
+    "read_length": 100,
+    "coverage": 20,
+    "error_rate": 0.001
+  },
+  "x": {
+    "param": "k",
+    "values": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      11,
+      13,
+      15,
+      17,
+      19,
+      21,
+      25,
+      31,
+      41,
+      51,
+      61,
+      71,
+      81,
+      87,
+      91,
+      95
+    ]
+  },
+  "series": {
+    "param": "error_rate",
+    "values": [
+      0.0,
+      0.001,
+      0.005
+    ]
+  },
+  "replicates": 3
+}
