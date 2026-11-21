@@ -1,4 +1,4 @@
-/* The 16 slides. Every experimental number is read from window.LAMBDA_DATA
+/* The 19 slides. Every experimental number is read from window.LAMBDA_DATA
    (aggregated from the pipeline's CSVs) or quoted from report.html. */
 (function () {
   "use strict";
@@ -508,33 +508,100 @@
     });
   })();
 
+  // ======================================================== 8b. Why we expected linear growth
+  (function () {
+    const READS = 14551; // N = round(30 · 48,502 / 100), from the CSV n_reads column
+    const NL = READS * L;
+    const fmtI = (v) => Math.round(v).toLocaleString("en-US");
+    const EV = [0.0005, 0.001, 0.005, 0.01, 0.02];
+    const meas = new Map(S.error_sweep.points.filter((p) => p.x > 0).map((p) => [p.x, p]));
+    const eLbl = (e) => (e * 100).toFixed(2).replace(/0$/, "") + "%";
+    const box = (step, color, title, body) =>
+      `<div class="panel stack" data-step="${step}" style="gap:16px;padding:24px 28px"><h3 class="${color}">${title}</h3>${body}</div>`;
+    Deck.add({
+      title: "Why We Expected Linear Growth", duration: 60, steps: 3,
+      html: `${head("Hypothesis H2 · the isolated-error model", "Why we expected a straight line", "Count the errors, then charge each one +2.")}
+      <div class="body cols-3" style="gap:30px;flex:none">
+        ${box(0, "c-cyan", "① How many bases are read?",
+          `<div class="math mid"><i>N</i> · <i>L</i> bases</div>
+           <div style="font-size:24px;line-height:1.5"><span class="mono c-cyan">N</span> = number of reads = <i>cG</i>/<i>L</i> = ${READS.toLocaleString("en-US")}<br>
+           <span class="mono c-cyan">L</span> = read length = ${L} bases</div>
+           <div class="small">${READS.toLocaleString("en-US")} × ${L} = <b class="c-cyan">${NL.toLocaleString("en-US")}</b> sequenced bases (each genome position read ≈ 30×).</div>`)}
+        ${box(1, "c-orange", "② How many errors?",
+          `<div class="math mid">E[#errors] = <i>N</i> · <i>L</i> · <i>e</i></div>
+           <div style="font-size:24px;line-height:1.5">Each base is wrong with probability <span class="mono c-orange">e</span>, independently (Bernoulli).</div>
+           <div class="small">Expected value of a sum = sum of expected values. At e = 1%: ${NL.toLocaleString("en-US")} × 0.01 = <b class="c-orange">${fmtI(NL * 0.01)}</b> errors.</div>`)}
+        ${box(2, "c-yellow", "③ Assumed: every error is isolated",
+          `<div class="math mid"><i>I</i> = 2 + 2 · E[#errors]<br>&nbsp;&nbsp;&nbsp;= 2 + 2 <i>N L e</i></div>
+           <div style="font-size:24px;line-height:1.5">One error → one bubble → <b class="c-yellow">+2</b>. The first 2 = the two ends of the linear genome.</div>
+           <div class="small">A straight line in e, slope 2NL.</div>`)}
+      </div>
+      <div class="panel" data-step="3" style="margin-top:26px;padding:12px 22px;flex:none"><table class="data" style="font-size:22px">
+        <tr><th>e</th>${EV.map((e) => `<th>${eLbl(e)}</th>`).join("")}</tr>
+        <tr><td class="c-orange">E[#errors] = NLe</td>${EV.map((e) => `<td class="c-orange">${fmtI(NL * e)}</td>`).join("")}</tr>
+        <tr><td class="c-yellow">predicted I = 2 + 2NLe</td>${EV.map((e) => `<td class="c-yellow">${fmtI(2 + 2 * NL * e)}</td>`).join("")}</tr>
+        <tr><td class="c-cyan">measured I (mean of 5)</td>${EV.map((e) => `<td class="c-cyan">${fmtI(meas.get(e).imbalance)}</td>`).join("")}</tr></table>
+        <div class="small" style="margin-top:8px">Fits while errors are rare; at 2% the measured I is about half the prediction, so the assumption must break.</div></div>`,
+    });
+  })();
+
   // ======================================================== 9. Why sublinear
   (function () {
-    let demo, el0;
-    const P = (e, k = 31) => 1 - Math.pow(1 - e, 2 * (k - 1));
-    const perErr = new Map(S.error_sweep.points.filter((p) => p.x > 0).map((p) => [p.x, (p.imbalance - 2) / p.n_errors]));
+    let demo;
     Deck.add({
       title: "Why Error Growth Becomes Sublinear", duration: 90, steps: 0,
       html: `${head("Explanation · overlapping error windows", "Why error growth becomes sublinear", "Errors closer than k share one bubble: together they add 2, not 4.")}
-      <div class="panel" style="flex:1;min-height:0;padding:18px 26px"><span class="tag sim panel-tag" style="top:auto;bottom:18px">◆ Simulation · toy · Interaction B</span><div data-demo style="height:100%"></div></div>
-      <div style="display:grid;grid-template-columns:1fr 1.15fr;gap:30px;margin-top:18px;flex:none">
+      <div class="panel" style="flex:1;min-height:0;padding:18px 26px"><span class="tag sim panel-tag" style="top:24px;font-size:13px;padding:4px 10px;gap:6px">◆ Simulation · toy · Interaction B</span><div data-demo style="height:100%"></div></div>`,
+      enter(el) { demo = Viz.ErrorDemo(el.querySelector("[data-demo]")); },
+      leave() { demo && demo.destroy(); },
+      reset() { demo && demo.reset(); },
+    });
+  })();
+
+  // ======================================================== 9b. Bubble-counting model
+  (function () {
+    let el0;
+    const K = 31, EV = [0.0005, 0.001, 0.005, 0.01, 0.02];
+    const P = (e) => 1 - Math.pow(1 - e, 2 * (K - 1));
+    const pred = (e) => 2 * Math.pow(1 - e, K - 1);
+    const perErr = new Map(S.error_sweep.points.filter((p) => p.x > 0).map((p) => [p.x, (p.imbalance - 2) / p.n_errors]));
+    const eLbl = (e) => (e * 100).toFixed(2).replace(/0$/, "") + "%";
+    const box = (step, color, title, body) =>
+      `<div class="panel stack" data-step="${step}" style="gap:14px;padding:22px 28px"><h3 class="${color}">${title}</h3>${body}</div>`;
+    Deck.add({
+      title: "Counting Bubbles, Not Errors", duration: 60, steps: 3,
+      html: `${head("Model · errors inside a bubble are free", "Counting bubbles, not errors", "Only the error that opens a bubble adds +2.")}
+      <div class="body cols-3" style="gap:30px;flex:none">
+        ${box(0, "c-cyan", "① Errors inside a bubble add nothing",
+          `<div style="font-size:24px;line-height:1.5">Nodes inside a detour have in = out = 1. Only the <b class="c-cyan">leave</b> and <b class="c-cyan">rejoin</b> nodes are unbalanced, so a bubble costs +2 however many errors it holds.</div>
+           <div class="small">A new bubble opens only if the k − 1 bases before the error are all correct.</div>`)}
+        ${box(1, "c-orange", "② Expected number of bubbles",
+          `<div class="math mid">E[#bubbles] ≈ <i>NL</i> · <i>e</i>(1 − <i>e</i>)<sup><i>k</i>−1</sup></div>
+           <div style="font-size:24px;line-height:1.5">A base opens a bubble if it is an error (<span class="c-orange"><i>e</i></span>) <b>and</b> the k − 1 bases before it are correct <span style="white-space:nowrap">(<span class="c-orange">(1 − <i>e</i>)<sup><i>k</i>−1</sup></span>)</span>.</div>`)}
+        ${box(2, "c-yellow", "③ Expected imbalance",
+          `<div class="math mid">E[<i>I</i>] ≈ 2 + 2<i>NL</i> · <i>e</i>(1 − <i>e</i>)<sup><i>k</i>−1</sup></div>
+           <div style="font-size:24px;line-height:1.5">Divide by E[#errors] = <i>NLe</i>:</div>
+           <div class="math mid c-yellow">(<i>I</i> − 2) / error ≈ 2(1 − <i>e</i>)<sup><i>k</i>−1</sup></div>`)}
+      </div>
+      <div data-step="3" style="display:grid;grid-template-columns:1fr 1.25fr;gap:30px;margin-top:24px;flex:none">
         <div class="panel" style="padding:16px 24px">
           <div class="math mid" style="margin-bottom:10px"><i>P</i>(neighbour within <i>k</i>−1) = 1 − (1 − <i>e</i>)<sup>2(<i>k</i>−1)</sup></div>
-          <div class="ctrl-row"><span>e</span><input type="range" min="0" max="0.02" step="0.0005" value="0.001" data-e style="width:420px"><span class="readout" data-ev></span><span>→ P =</span><span class="readout c-orange" data-pv style="font-size:30px"></span><span class="small">(k = 31)</span></div>
+          <div class="ctrl-row"><span>e</span><input type="range" min="0" max="0.02" step="0.0005" value="0.001" data-e style="width:360px"><span class="readout" data-ev></span><span>→ P =</span><span class="readout c-orange" data-pv style="font-size:30px"></span></div>
+          <div class="ctrl-row" style="margin-top:6px"><span class="small">predicted (I − 2)/error ≈ 2(1 − e)<sup>30</sup> =</span><span class="readout c-yellow" data-mv style="font-size:30px"></span><span class="small">(k = 31)</span></div>
         </div>
-        <div class="panel" style="padding:12px 22px"><table class="data" style="font-size:22px"><tr><th>e</th>${[0.0005, 0.001, 0.005, 0.01, 0.02].map((e) => `<th>${(e * 100).toFixed(2).replace(/0$/, "")}%</th>`).join("")}</tr>
-          <tr><td class="c-yellow">P (computed)</td>${[0.0005, 0.001, 0.005, 0.01, 0.02].map((e) => `<td class="c-yellow">${pct(P(e), 0)}</td>`).join("")}</tr>
-          <tr><td class="c-orange">I / error (measured)</td>${[0.0005, 0.001, 0.005, 0.01, 0.02].map((e) => `<td class="c-orange">${perErr.get(e).toFixed(2)}</td>`).join("")}</tr></table></div>
+        <div class="panel" style="padding:12px 22px"><table class="data" style="font-size:22px"><tr><th>e</th>${EV.map((e) => `<th>${eLbl(e)}</th>`).join("")}</tr>
+          <tr><td class="c-orange">P (computed)</td>${EV.map((e) => `<td class="c-orange">${pct(P(e), 0)}</td>`).join("")}</tr>
+          <tr><td class="c-yellow">predicted 2(1−e)<sup>k−1</sup></td>${EV.map((e) => `<td class="c-yellow">${pred(e).toFixed(2)}</td>`).join("")}</tr>
+          <tr><td class="c-cyan">I / error (measured)</td>${EV.map((e) => `<td class="c-cyan">${perErr.get(e).toFixed(2)}</td>`).join("")}</tr></table>
+          <div class="small" style="margin-top:8px;font-size:19px">≈: ignores read starts, where fewer than k − 1 bases precede an error (+), and identical or touching bubbles from different reads (−).</div></div>
       </div>`,
       enter(el) {
         el0 = el;
-        demo = Viz.ErrorDemo(el.querySelector("[data-demo]"));
         const s = el.querySelector("[data-e]");
-        const upd = () => { const e = +s.value; el.querySelector("[data-ev]").textContent = (e * 100).toFixed(2) + "%"; el.querySelector("[data-pv]").textContent = pct(P(e)); };
+        const upd = () => { const e = +s.value; el.querySelector("[data-ev]").textContent = (e * 100).toFixed(2) + "%"; el.querySelector("[data-pv]").textContent = pct(P(e)); el.querySelector("[data-mv]").textContent = pred(e).toFixed(2); };
         s.oninput = upd; upd();
       },
-      leave() { demo && demo.destroy(); },
-      reset() { demo && demo.reset(); if (el0) { el0.querySelector("[data-e]").value = 0.001; el0.querySelector("[data-e]").oninput(); } },
+      reset() { if (el0) { el0.querySelector("[data-e]").value = 0.001; el0.querySelector("[data-e]").oninput(); } },
     });
   })();
 

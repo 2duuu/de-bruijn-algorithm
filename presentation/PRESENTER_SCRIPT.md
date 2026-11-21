@@ -15,15 +15,17 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 | 7 | Coverage Experiment: Results | 1:30 | 163 | 1:10 |
 | 8 | Why the Curve First Rises, Then Falls | 1:30 | 178 | 1:16 |
 | 9 | Sequencing Error Experiment: Results | 1:30 | 148 | 1:03 |
-| 10 | Why Error Growth Becomes Sublinear | 1:30 | 165 | 1:11 |
-| 11 | k-mer Experiment: Results | 1:30 | 156 | 1:07 |
-| 12 | How Coverage Shifts the k-mer Threshold | 1:30 | 154 | 1:06 |
-| 13 | The Surprise: Zero Degradation | 1:30 | 172 | 1:14 |
-| 14 | Why Our Metric Fails | 1:30 | 197 | 1:24 |
-| 15 | Why the Peak Occurs Near k = 8 | 1:00 | 132 | 0:57 |
-| 16 | What the Results Actually Tell Us | 1:00 | 123 | 0:53 |
-| 17 | Conclusion and Future Work | 1:00 | 146 | 1:03 |
-| | **Total** | **21:00** | **2567** | **18:20** |
+| 10 | Why We Expected Linear Growth | 1:00 | 138 | 0:59 |
+| 11 | Why Error Growth Becomes Sublinear | 1:30 | 117 | 0:50 |
+| 12 | Counting Bubbles, Not Errors | 1:00 | 212 | 1:31 |
+| 13 | k-mer Experiment: Results | 1:30 | 156 | 1:07 |
+| 14 | How Coverage Shifts the k-mer Threshold | 1:30 | 154 | 1:06 |
+| 15 | The Surprise: Zero Degradation | 1:30 | 172 | 1:14 |
+| 16 | Why Our Metric Fails | 1:30 | 197 | 1:24 |
+| 17 | Why the Peak Occurs Near k = 8 | 1:00 | 132 | 0:57 |
+| 18 | What the Results Actually Tell Us | 1:00 | 123 | 0:53 |
+| 19 | Conclusion and Future Work | 1:00 | 146 | 1:03 |
+| | **Total** | **23:00** | **2869** | **20:30** |
 
 ---
 
@@ -201,11 +203,32 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 > Coverage 30, k = 31, and we raise the substitution rate from zero to two percent. The imbalance rises monotonically — no surprise. The dashed yellow line is what you get if every error contributes exactly 2, independently. At low rates the data sits right on it: at 0.05 percent, each error adds 1.95. But the measured curve bends away. At 1 percent each error adds only 1.37, at 2 percent only 1.05, and the total stops at about 30,500 instead of almost 60,000. Where does the number 2 come from? Look at the small graph: an error in the middle of a read creates a bubble. The path leaves the true graph at one node, which now has two outgoing edges, and rejoins at another, which has two incoming edges. Two nodes off by one: plus 2. So the hypothesis is right only while errors are sparse.
 
-**Transition.** Why does it stop being linear? Let's inject errors ourselves.
+**Transition.** Before explaining the bend: where did the straight line come from?
 
 ---
 
-## 10. Why Error Growth Becomes Sublinear — 1:30
+## 10. Why We Expected Linear Growth — 1:00
+
+**Argument.** H2 came from a counting argument: expected errors grow in proportion to e, and each error was assumed to cost exactly +2.
+
+**Points to make**
+- N reads × L bases = N·L sequenced bases (N = cG/L = 14,551, L = 100 → 1,455,100).
+- Each base is wrong with probability e, independently → E[#errors] = N·L·e.
+- Assumption: every error is isolated → one bubble → +2.
+- So I = 2 + 2·E[#errors] = 2 + 2NLe: a straight line in e.
+- Fits at 0.05–0.1%; at 2% the prediction (≈ 58,200) is almost twice the measurement (≈ 30,500).
+
+**Demo / controls.** → three times: bases read, expected errors, the +2 assumption; the last → reveals the predicted-vs-measured table.
+
+**Script.**
+
+> Where did our straight line come from? It is just counting. We have N reads, each L bases long, so we sequence N times L bases — 14,551 reads of 100 bases, about 1.46 million bases. [→] Every one of those bases is wrong with probability e, independently, so the expected number of errors is N times L times e. At one percent that is about 14,500 errors. [→] Then the assumption: every error is isolated, so each one makes its own bubble and adds exactly 2 to the imbalance. Plus the 2 that the linear genome always has at its ends. So I equals 2 plus 2 N L e, a straight line in e. [→] And at low error rates it works. But at 2 percent it predicts 58,000 and we measured 30,500. So the assumption must break somewhere.
+
+**Transition.** So why does it stop being linear? Let's inject errors ourselves.
+
+---
+
+## 11. Why Error Growth Becomes Sublinear — 1:30
 
 **Argument.** Errors within k−1 bases share one bubble; overlap probability explains the curvature.
 
@@ -213,20 +236,40 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 - Mid-read error → bubble (+2). Error at read end → tip (+2).
 - Two errors 2 bp apart → one bigger bubble, still +2 total.
 - Two errors far apart → two bubbles, +4.
-- P = 1 − (1−e)^(2(k−1)): 6% at 0.1%, 70% at 2%.
 - Not every error has identical topology — collisions with existing k-mers can happen.
 
-**Demo / controls.** Click 'Mid-read error' (bubble, I − 2 = 2), 'Error at read end' (tip), '2 errors, 2 bp apart' (one bubble, still 2), '2 errors, far apart' (4). Clicking any base also mutates it. Then drag the e slider to 2%.
+**Demo / controls.** Click 'Mid-read error' (bubble, I − 2 = 2), 'Error at read end' (tip), '2 errors, 2 bp apart' (one bubble, still 2), '2 errors, far apart' (4). Clicking any base also mutates it.
 
 **Script.**
 
-> This is a real graph on 30 bases of lambda, k = 5. Grey is the true path. [Mid-read error] One substitution in the middle of the read: the k windows that contain it are highlighted in the read, they form the orange detour, and the two red nodes are where it leaves and rejoins. Imbalance above the baseline: 2. [Error at read end] Near the end of the read, the detour never rejoins — that is a tip, a dead end. Also plus 2. [2 errors far apart] Two errors far apart: two bubbles, plus 4. Additive. [2 errors close] But two errors only two bases apart: their windows overlap, so they produce one larger bubble, and the total is still 2, not 4. Now, how often does an error have a neighbour within k − 1 bases on either side? One minus (1 − e) to the power 2(k − 1). [slider] At 0.1 percent, about 6 percent of errors. At 2 percent, 70 percent. That is exactly why the per-error contribution falls from 1.95 to 1.05.
+> This is a real graph on 18 bases of lambda, k = 4, so the nodes are 3-mers. Grey is the true path. [Mid-read error] One substitution in the middle of the read: the k windows that contain it are highlighted in the read, they form the orange detour, and the two red nodes are where it leaves and rejoins. Imbalance above the baseline: 2. [Error at read end] Near the end of the read, the detour never rejoins — that is a tip, a dead end. Also plus 2. [2 errors far apart] Two errors far apart: two bubbles, plus 4. Additive. [2 errors close] But two errors only two bases apart: their windows overlap, so they produce one larger bubble, and the total is still 2, not 4.
+
+**Transition.** So the imbalance counts bubbles, not errors. Let's count them.
+
+---
+
+## 12. Counting Bubbles, Not Errors — 1:00
+
+**Argument.** Imbalance counts bubbles, not errors: E[I] = 2 + 2NL·e(1−e)^(k−1), so each error is worth 2(1−e)^(k−1) on average.
+
+**Points to make**
+- Errors inside an open bubble add nothing: inner detour nodes are balanced.
+- A base opens a bubble iff it is an error (e) AND the k−1 bases before it are correct ((1−e)^(k−1)).
+- E[#bubbles] ≈ NL·e(1−e)^(k−1); E[I] ≈ 2 + 2·E[#bubbles]. Approximate: ignores read starts (+) and identical/touching bubbles across reads (−).
+- Per error: 2(1−e)^30 = 1.97, 1.94, 1.72, 1.48, 1.09 vs measured 1.95, 1.91, 1.63, 1.37, 1.05.
+- P = 1 − (1−e)^(2(k−1)) is how many errors have a close neighbour (6% at 0.1%, 70% at 2%); it shows sharing becomes common, but the prediction uses the one-sided (1−e)^(k−1).
+
+**Demo / controls.** → three times for the derivation; the last → reveals the slider and table. Drag e to 2%: P climbs to 70% and the predicted value falls to 1.09.
+
+**Script.**
+
+> From the demo: an error inside a bubble that is already open adds nothing, because the nodes inside a detour have one edge in and one out. Only the leave and rejoin nodes count. [→] So we count bubbles. A base opens a new bubble when it is an error, probability e, and the k − 1 bases before it are all correct, probability (1 − e) to the k − 1. Over N times L bases, the expected number of bubbles is approximately N L e (1 − e) to the k − 1. [→] Each bubble adds 2, so the expected imbalance is 2 plus 2 N L e (1 − e) to the k − 1. Divide by the expected number of errors, N L e, and each error is worth 2 (1 − e) to the k − 1. [→] With k = 31: 1.97, 1.94, 1.72, 1.48 and 1.09, against measured 1.95 down to 1.05. It is an approximation: errors at the very start of a read have fewer than k − 1 bases before them, and bubbles from different reads can coincide, but the trend is captured. [slider] At 2 percent, 70 percent of errors have a close neighbour, and only about half of them still open a new bubble.
 
 **Transition.** Third experiment: varying k — and this is where things get strange.
 
 ---
 
-## 11. k-mer Experiment: Results — 1:30
+## 13. k-mer Experiment: Results — 1:30
 
 **Argument.** H3 partly confirmed: a lopsided U for k ≥ 8, driven by different terms on each side — and an unexplained drop at k ≤ 6.
 
@@ -237,7 +280,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 - Left side: only the imbalance term; right side: the component term.
 - Leave k ≤ 6 as a question mark for now.
 
-**Demo / controls.** → shades the motif-collision region, → the valley, → the large-k region. Keep the grey '?' region unexplained — it pays off on slide 13.
+**Demo / controls.** → shades the motif-collision region, → the valley, → the large-k region. Keep the grey '?' region unexplained — it pays off on slide 15.
 
 **Script.**
 
@@ -247,7 +290,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 12. How Coverage Shifts the k-mer Threshold — 1:30
+## 14. How Coverage Shifts the k-mer Threshold — 1:30
 
 **Argument.** The large-k threshold is set by coverage and errors: fewer windows per read, and fewer error-free ones.
 
@@ -268,7 +311,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 13. The Surprise: Zero Degradation — 1:30
+## 15. The Surprise: Zero Degradation — 1:30
 
 **Argument.** The headline: at k = 4 the graph is 99.5% collapsed, yet D = 0 — and a balanced, connected graph can encode thousands of different sequences.
 
@@ -289,7 +332,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 14. Why Our Metric Fails — 1:30
+## 16. Why Our Metric Fails — 1:30
 
 **Argument.** Saturation: when 4^k ≪ G, distinct k-mers saturate, both terms of D vanish, but uniqueness is gone. A limitation of the metric, not of the experiment.
 
@@ -310,7 +353,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 15. Why the Peak Occurs Near k = 8 — 1:00
+## 17. Why the Peak Occurs Near k = 8 — 1:00
 
 **Argument.** The transition sits where 4^k ≈ G, i.e. k ≈ log₄ G ≈ 7.8 for lambda.
 
@@ -330,7 +373,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 16. What the Results Actually Tell Us — 1:00
+## 18. What the Results Actually Tell Us — 1:00
 
 **Argument.** Scorecard and the key distinction between existence, uniqueness and correctness.
 
@@ -350,7 +393,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 17. Conclusion and Future Work — 1:00
+## 19. Conclusion and Future Work — 1:00
 
 **Argument.** Our contribution: quantified, explained degradation — and a concrete limitation of structural metrics.
 

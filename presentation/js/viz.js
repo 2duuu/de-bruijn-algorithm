@@ -213,16 +213,11 @@
 
   // ------------------------------------------------- Demo B: error injection
   function ErrorDemo(root, opts = {}) {
-    const k = 5;
-    // pick a 30 bp window of lambda whose 4-mers are all distinct (clean reference path)
-    let ref = null;
-    for (let o = 0; o + 30 <= Toy.LAMBDA_EXCERPT.length && !ref; o++) {
-      const w = Toy.LAMBDA_EXCERPT.slice(o, o + 30);
-      const nm = Toy.kmersOf(w, k - 1);
-      if (new Set(nm).size === nm.length) ref = w;
-    }
-    ref = ref || Toy.LAMBDA_EXCERPT.slice(0, 30);
-    const RS = 3, RL = 24; // read = ref[3..27)
+    const k = 4;
+    // 18 bp of lambda (excerpt positions 113–130) whose 3-mers are all distinct (clean reference path);
+    // every preset's erroneous 3-mers are new nodes, so each preset shows exactly the intended structure
+    const ref = Toy.LAMBDA_EXCERPT.slice(113, 131); // GGAAACGACAGGTGCTGA
+    const RS = 3, RL = 12; // read = ref[3..15) = AACGACAGGTGC
     const read0 = ref.slice(RS, RS + RL);
     let read = read0.split("");
     root.innerHTML = `
@@ -236,7 +231,7 @@
         <div style="display:flex;align-items:center;gap:18px"><span class="small mono">read</span><div class="dna" data-read></div></div>
         <div style="flex:1;min-height:0" data-g></div>
         <div class="strip"><span>substitutions<b class="c-orange" data-s="ne"></b></span><span>k-mers affected<b class="c-orange" data-s="aff"></b></span><span>imbalance I<b class="c-red" data-s="I"></b></span><span>I − 2 (linear ends)<b class="c-red" data-s="dI"></b></span><span>structure<b data-s="kind"></b></span></div>
-        <div class="small">Toy: 30 bp of lambda (all ${k - 1}-mers distinct), k = ${k}. Grey path = error-free reference k-mers; orange = k-mers that exist only because of the substitution(s). Red nodes have in-degree ≠ out-degree.</div>
+        <div class="small">Toy: 18 bp of lambda (all ${k - 1}-mers distinct), k = ${k}. Grey path = error-free reference k-mers; orange = k-mers that exist only because of the substitution(s). Red nodes have in-degree ≠ out-degree.</div>
       </div>`;
     const W = 1700, H = 280, mid = 175;
     const view = new GraphView(root.querySelector("[data-g]"), { w: W, h: H, r: 17, labelSize: 12, edgeWidth: 3 });
@@ -290,7 +285,7 @@
     }
     const cycle = (b, orig) => { const order = "ACGT"; let nb = order[(order.indexOf(b) + 1) % 4]; return nb; };
     const presets = {
-      bubble: [11], tip: [RL - 2], close: [10, 12], far: [5, 17],
+      bubble: [6], tip: [RL - 2], close: [5, 7], far: [3, 8],
     };
     const sub = (b) => ({ A: "C", C: "G", G: "T", T: "A" })[b];
     function preset(name) {
