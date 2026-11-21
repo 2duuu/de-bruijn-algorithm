@@ -8,7 +8,7 @@
 | `data/raw/<sweep>/config.json` | experimental parameters (c, e, k, L, replicates) |
 | `plots/*.png`, which are the original figures from `results/lambda/plots/` in the same zip | the *Show original figure* toggle |
 | `de bruijn research/report.html` | narrative, explanations, and three quoted values not stored in the CSVs: the exponential-fit R² (0.988–0.997) and decay rates (0.59 / 0.50 / 0.36), and the count of 6-mers absent from lambda (43 of 4,096) |
-| `de bruijn research/Project_proposal (1).md` | the original hypotheses (slide 3) |
+| `de bruijn research/Project_proposal (1).md` | the original hypotheses (slide 3); the Edmonds & Johnson (1973) reference behind slide 6 |
 | `data/phage_lambda/NC_001416.fasta` | the 210 bp lambda excerpt used by the live demos |
 
 `tools/aggregate.mjs` groups each CSV by `(x, series)` and stores the replicate **mean** and **sample standard deviation** of each metric in `data/lambda-data.js`. Nothing is smoothed, interpolated or digitised from images. Running it prints cross-checks against the report:
@@ -50,15 +50,19 @@ Every measured visual in the deck is therefore labelled *phage lambda NC_001416.
 
 ## Model curves (labelled "Model" or "Arithmetic")
 
-- Islands ≈ (cG/L)·e^(−c(L−k+1)/L) and c_peak = L/(L−k+1): slide 7, with no fitted parameters.
-- Isolated-error line I = 2 + 2·N·L·e with N = 14,551 reads (the CSV's `n_reads`): slide 8.
-- P = 1 − (1−e)^(2(k−1)): slide 9.
-- Windows per read L−k+1, unsampled fraction ≈ e^(−c(L−k+1)/L), and error-free probability (1−e)^k: slide 11.
-- 4ᵏ vs G and k ≈ log₄ G: slide 14. The E. coli value (≈ 11) is a prediction for future work.
+- Islands ≈ (cG/L)·e^(−c(L−k+1)/L) and c_peak = L/(L−k+1): slide 8, with no fitted parameters.
+- Isolated-error line I = 2 + 2·N·L·e with N = 14,551 reads (the CSV's `n_reads`): slide 9.
+- P = 1 − (1−e)^(2(k−1)): slide 10.
+- Windows per read L−k+1, unsampled fraction ≈ e^(−c(L−k+1)/L), and error-free probability (1−e)^k: slide 12.
+- 4ᵏ vs G and k ≈ log₄ G: slide 15. The E. coli value (≈ 11) is a prediction for future work.
+
+## Metric motivation (slide 6)
+
+Edmonds & Johnson (1973), *Matching, Euler tours and the Chinese postman*, Math. Programming 5:88–124. The minimum number of edges to add so a directed graph has an Euler tour is I/2 when the graph is weakly connected, and Σⱼ max(1, Iⱼ/2) over its C ≥ 2 components, hence max(C, I/2) ≤ R ≤ C + I/2. The toy graph on the slide (C = 2, I = 6) is repaired with exactly 3 edges, which the slide computes from this formula. The |V| = 48,466 used in the normalisation table is the error-free lambda graph at k = 31 (`error_sweep`, e = 0).
 
 ## Illustrations (labelled "Simulation" or "Illustration")
 
-- Interaction A (slides 6–7): seeded reads on the first 210 bp of lambda, L = 30, k = 11.
-- Interaction B (slide 9): a 30 bp lambda window whose 4-mers are all distinct, k = 5. The demo computes the imbalance for real; the presets give +2 (bubble), +2 (tip), +2 (two errors 2 bp apart) and +4 (two errors far apart).
-- Interaction C (slide 13): the first 210 bp of lambda, k = 2 … 20. Either all k-mers are used, or seeded reads at c = 4, L = 25.
-- Interaction D (slide 12): a simple 8-node cycle versus the complete k = 2 graph on all 16 dinucleotides. Both have C = 1, I = 0 and D = 0. The Eulerian circuits are counted by exhaustive enumeration in the browser: 1 versus 20,736, which matches the BEST theorem value (4!)⁴/4².
+- Interaction A (slides 7–8): seeded reads on the first 210 bp of lambda, L = 30, k = 11.
+- Interaction B (slide 10): a 30 bp lambda window whose 4-mers are all distinct, k = 5. The demo computes the imbalance for real; the presets give +2 (bubble), +2 (tip), +2 (two errors 2 bp apart) and +4 (two errors far apart).
+- Interaction C (slide 14): the first 210 bp of lambda, k = 2 … 20. Either all k-mers are used, or seeded reads at c = 4, L = 25.
+- Interaction D (slide 13): a simple 8-node cycle versus the complete k = 2 graph on all 16 dinucleotides. Both have C = 1, I = 0 and D = 0. The Eulerian circuits are counted by exhaustive enumeration in the browser: 1 versus 20,736, which matches the BEST theorem value (4!)⁴/4².

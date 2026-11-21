@@ -84,7 +84,7 @@
         } else v.p.setAttribute("opacity", s.opacity ?? 0.9);
         v.u = e.u; v.v = e.v; v.dead = false;
         v.rev = e.u !== e.v && pairs.has(e.v + "→" + e.u);
-        v.loopIdx = s.loopIdx || 0;
+        v.loopIdx = s.loopIdx || 0; v.bend = s.bend || 0;
         const color = s.color || COL.teal;
         v.p.setAttribute("class", "edge " + (s.cls || ""));
         v.p.style.stroke = color;
@@ -113,8 +113,8 @@
       }
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
       const ux = dx / d, uy = dy / d;
-      if (v.rev) {
-        const off = Math.min(26, d * 0.22);
+      if (v.rev || v.bend) {
+        const off = v.bend || Math.min(26, d * 0.22);
         const mx = (a.x + b.x) / 2 - uy * off, my = (a.y + b.y) / 2 + ux * off;
         const sa = Math.atan2(my - a.y, mx - a.x), sb = Math.atan2(my - b.y, mx - b.x);
         return `M${a.x + r * Math.cos(sa)},${a.y + r * Math.sin(sa)} Q${mx},${my} ${b.x + (rb + 2) * Math.cos(sb)},${b.y + (rb + 2) * Math.sin(sb)}`;

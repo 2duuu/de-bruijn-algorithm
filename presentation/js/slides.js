@@ -301,6 +301,85 @@
     });
   })();
 
+  // ======================================================== 5b. Why this metric
+  (function () {
+    let view, el0;
+    // degraded example: component A = path a1→a2→a3→a4 with a tip a2→t; component B = path b1→b2→b3
+    const BASE = [["a1", "a2"], ["a2", "a3"], ["a3", "a4"], ["a2", "t"], ["b1", "b2"], ["b2", "b3"]];
+    // a minimum repair (3 arcs): each joins a node with in > out to a node with out > in
+    const REPAIR = [["t", "b1"], ["b3", "a2"], ["a4", "a1"]];
+    const POS = new Map([["a1", { x: 90, y: 150 }], ["a2", { x: 260, y: 150 }], ["a3", { x: 430, y: 150 }], ["a4", { x: 600, y: 150 }], ["t", { x: 260, y: 300 }],
+      ["b1", { x: 260, y: 440 }], ["b2", { x: 430, y: 440 }], ["b3", { x: 600, y: 440 }]]);
+    function metrics(edgeList) {
+      const nodes = new Map();
+      const n = (id) => { if (!nodes.has(id)) nodes.set(id, { id, in: 0, out: 0 }); return nodes.get(id); };
+      const edges = edgeList.map(([u, v]) => { n(u).out++; n(v).in++; return { id: u + ">" + v, u, v }; });
+      const par = new Map([...nodes.keys()].map((k) => [k, k]));
+      const f = (x) => { while (par.get(x) !== x) x = par.get(x); return x; };
+      edges.forEach((e) => par.set(f(e.u), f(e.v)));
+      const comp = new Map();
+      for (const v of nodes.values()) { const r = f(v.id); comp.set(r, (comp.get(r) || 0) + Math.abs(v.in - v.out)); }
+      const I = [...nodes.values()].reduce((a, v) => a + Math.abs(v.in - v.out), 0);
+      const C = comp.size, V = nodes.size, E = edges.length;
+      const R = C === 1 ? I / 2 : [...comp.values()].reduce((a, Ij) => a + Math.max(1, Ij / 2), 0); // Edmonds–Johnson
+      return { nodes, edges, I, C, V, E, R, Ij: [...comp.values()], D: 0.5 * (V > 1 ? Math.log(C) / Math.log(V) : 0) + 0.5 * I / (2 * E) };
+    }
+    const before = metrics(BASE), after = metrics([...BASE, ...REPAIR]);
+    const Vg = 48466; // |V| of the error-free lambda graph at k = 31 (error_sweep CSV, e = 0)
+    const opts = [2, 10, 100, 1000];
+    function draw(step) {
+      const g = step >= 1 ? metrics([...BASE, ...REPAIR]) : before;
+      view.update({ nodes: g.nodes, edges: g.edges }, POS, {
+        node: (v) => ({ cls: step < 1 && v.in !== v.out ? "unbal" : "", label: v.id, stroke: v.id[0] === "b" ? COL.orange : "" }),
+        edge: (e) => REPAIR.some(([u, v]) => e.id === u + ">" + v) ? { color: COL.yellow, dash: "8 7", width: 3.5, bend: e.id === "a4>a1" ? 120 : 0 } : { color: e.u[0] === "b" ? COL.orange : COL.cyan },
+      });
+      el0.querySelector("[data-rs]").innerHTML = step >= 1
+        ? `after adding <b class="c-yellow">${REPAIR.length}</b> edges: C = ${after.C}, I = ${after.I} → Eulerian, D = ${after.D.toFixed(3)}`
+        : `C = ${before.C}, I = ${before.I} (I<sub>A</sub> = ${before.Ij[0]}, I<sub>B</sub> = ${before.Ij[1]}), |V| = ${before.V}, |E| = ${before.E} → D = ${before.D.toFixed(3)}`;
+    }
+    Deck.add({
+      title: "Why We Chose This Metric", duration: 60, steps: 3,
+      html: `${head("Metric design", "Why we chose this metric", "How far is the graph from having an Euler tour?")}
+      <div class="body" style="grid-template-columns:1fr 1.12fr;gap:30px">
+        <div class="panel stack" style="padding:18px 24px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h3 style="font-size:24px;margin:0">Repair it with the fewest new edges</h3><span class="tag sim">◆ Exact toy graph</span></div>
+          <div data-g style="flex:1;min-height:0"></div>
+          <div class="mono" style="font-size:22px;min-height:60px" data-rs></div>
+          <div class="small" style="font-size:18px"><span class="c-red">●</span> in ≠ out &nbsp; <span class="c-yellow">┄</span> added edge: joins a node with in &gt; out to one with out &gt; in</div>
+        </div>
+        <div class="stack" style="gap:16px">
+          <div class="panel" style="padding:16px 24px;border-color:#5a4a1d">
+            <div class="small mono" style="color:var(--yellow)">EDMONDS &amp; JOHNSON (1973) · EULER TOURS &amp; THE CHINESE POSTMAN</div>
+            <div style="font-size:23px;margin:8px 0 6px">Fewest edges to add so a digraph has an Euler tour:</div>
+            <div class="math mid">R = <span class="frac"><span><i>I</i></span><span>2</span></span> &nbsp;(C = 1), &nbsp;&nbsp; R = Σ<sub><i>j</i></sub> max(1, <span class="frac"><span><i>I<sub>j</sub></i></span><span>2</span></span>) &nbsp;(C ≥ 2)</div>
+            <div class="math mid" style="margin-top:6px">⇒ &nbsp;max(<i>C</i>, <i>I</i>/2) ≤ R ≤ <span class="term-f"><i>C</i></span> + <span class="term-i"><i>I</i>/2</span></div>
+            <div class="small" style="margin-top:4px">The repair cost depends on exactly two quantities: <b class="term-f">components</b> and <b class="term-i">imbalance</b>.</div>
+          </div>
+          <div class="panel" data-step="2" style="padding:14px 24px">
+            <div style="font-size:23px;margin-bottom:6px">Raw C and I grow with genome size → normalise each to [0, 1]</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+              <div><div class="math mid"><span class="term-i"><span class="frac"><span><i>I</i>/2</span><span>|<i>E</i>|</span></span> = <span class="frac"><span><i>I</i></span><span>2|<i>E</i>|</span></span></span></div><div class="small" style="font-size:18px">balancing edges needed per existing edge</div></div>
+              <table class="data" style="font-size:18px;white-space:nowrap"><tr><th>C</th>${opts.map((c) => `<th>${c}</th>`).join("")}</tr>
+                <tr><td>C/|V|</td>${opts.map((c) => `<td>${(c / Vg).toExponential(0)}</td>`).join("")}</tr>
+                <tr><td>1 − 1/C</td>${opts.map((c) => `<td>${(1 - 1 / c).toFixed(3)}</td>`).join("")}</tr>
+                <tr><td class="term-f">ln C / ln|V|</td>${opts.map((c) => `<td class="term-f">${(Math.log(c) / Math.log(Vg)).toFixed(2)}</td>`).join("")}</tr></table>
+            </div>
+            <div class="small" style="font-size:18px;margin-top:4px">C spans 1 … thousands: C/|V| stays ≈ 0, 1 − 1/C saturates after a few breaks, the log spreads it evenly (|V| = 48,466, lambda at k = 31).</div>
+          </div>
+          <div class="panel" data-step="3" style="padding:14px 24px;text-align:center">${DFORM("mid")}
+            <div class="small" style="margin-top:6px">Equal weights. D = 0 ⇔ no repair needed (a linear genome keeps its 2 end-point units). D = 1 at the worst.</div></div>
+        </div>
+      </div>`,
+      enter(el) {
+        el0 = el;
+        view = new GraphView(el.querySelector("[data-g]"), { w: 700, h: 540, r: 26, labelSize: 17, edgeWidth: 3 });
+        draw(Deck.step);
+      },
+      onStep(s) { if (el0 && el0.classList.contains("active")) draw(s); },
+      leave() { view && view.stop(); },
+    });
+  })();
+
   // ======================================================== 6. Coverage results
   (function () {
     let demo;

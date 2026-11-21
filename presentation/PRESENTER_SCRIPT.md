@@ -11,18 +11,19 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 | 3 | Our Hypotheses | 1:00 | 119 | 0:51 |
 | 4 | Research Pipeline | 1:00 | 136 | 0:58 |
 | 5 | Defining Graph Degradation | 1:00 | 150 | 1:04 |
-| 6 | Coverage Experiment: Results | 1:30 | 163 | 1:10 |
-| 7 | Why the Curve First Rises, Then Falls | 1:30 | 178 | 1:16 |
-| 8 | Sequencing Error Experiment: Results | 1:30 | 148 | 1:03 |
-| 9 | Why Error Growth Becomes Sublinear | 1:30 | 165 | 1:11 |
-| 10 | k-mer Experiment: Results | 1:30 | 156 | 1:07 |
-| 11 | How Coverage Shifts the k-mer Threshold | 1:30 | 154 | 1:06 |
-| 12 | The Surprise: Zero Degradation | 1:30 | 172 | 1:14 |
-| 13 | Why Our Metric Fails | 1:30 | 197 | 1:24 |
-| 14 | Why the Peak Occurs Near k = 8 | 1:00 | 132 | 0:57 |
-| 15 | What the Results Actually Tell Us | 1:00 | 123 | 0:53 |
-| 16 | Conclusion and Future Work | 1:00 | 146 | 1:03 |
-| | **Total** | **20:00** | **2428** | **17:21** |
+| 6 | Why We Chose This Metric | 1:00 | 139 | 1:00 |
+| 7 | Coverage Experiment: Results | 1:30 | 163 | 1:10 |
+| 8 | Why the Curve First Rises, Then Falls | 1:30 | 178 | 1:16 |
+| 9 | Sequencing Error Experiment: Results | 1:30 | 148 | 1:03 |
+| 10 | Why Error Growth Becomes Sublinear | 1:30 | 165 | 1:11 |
+| 11 | k-mer Experiment: Results | 1:30 | 156 | 1:07 |
+| 12 | How Coverage Shifts the k-mer Threshold | 1:30 | 154 | 1:06 |
+| 13 | The Surprise: Zero Degradation | 1:30 | 172 | 1:14 |
+| 14 | Why Our Metric Fails | 1:30 | 197 | 1:24 |
+| 15 | Why the Peak Occurs Near k = 8 | 1:00 | 132 | 0:57 |
+| 16 | What the Results Actually Tell Us | 1:00 | 123 | 0:53 |
+| 17 | Conclusion and Future Work | 1:00 | 146 | 1:03 |
+| | **Total** | **21:00** | **2567** | **18:20** |
 
 ---
 
@@ -122,7 +123,28 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 6. Coverage Experiment: Results — 1:30
+## 6. Why We Chose This Metric — 1:00
+
+**Argument.** D is built from C and I because the minimum repair needed to make the graph Eulerian depends on exactly those two numbers (Edmonds & Johnson 1973).
+
+**Points to make**
+- Repair = fewest new edges so the graph has an Euler tour.
+- Edmonds & Johnson: R = I/2 for one component; R = Σⱼ max(1, Iⱼ/2) for C ≥ 2, so max(C, I/2) ≤ R ≤ C + I/2.
+- Toy: C = 2, I = 6 → exactly 3 added edges make it Eulerian.
+- Normalise: I/2 per edge = I/(2|E|); components on a log scale because C spans orders of magnitude.
+- Equal weights; D = 0 means no repair needed.
+
+**Demo / controls.** Step 0: degraded toy graph with its red unbalanced nodes. → the 3 yellow repair edges appear and the graph becomes Eulerian. → normalisation (compare the three options for C). → the final formula.
+
+**Script.**
+
+> Why these two ingredients? We asked: what is the smallest number of edges you must add to a broken graph so that it has an Euler tour? Edmonds and Johnson answered this in 1973, in their work on Euler tours and the Chinese postman. With one component you need I over 2 new edges; with several, the sum over components of max(1, I_j over 2) — always between max(C, I/2) and C plus I/2. So the repair cost depends on components and imbalance, and nothing else. [→] Here: two components, imbalance 6, and exactly three yellow edges make it Eulerian. [→] Raw counts grow with the genome, so we normalise: I over 2 per edge is I over 2|E|, and components get a logarithm, because C/|V| stays near zero and 1 − 1/C saturates. [→] Average the two and you get D.
+
+**Transition.** With the metric defined and motivated, let's look at the first experiment.
+
+---
+
+## 7. Coverage Experiment: Results — 1:30
 
 **Argument.** H1 confirmed: exponential decay — but only after an initial increase.
 
@@ -142,7 +164,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 7. Why the Curve First Rises, Then Falls — 1:30
+## 8. Why the Curve First Rises, Then Falls — 1:30
 
 **Argument.** Lander–Waterman explains both the peak position and its height, with no fitted parameters.
 
@@ -163,7 +185,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 8. Sequencing Error Experiment: Results — 1:30
+## 9. Sequencing Error Experiment: Results — 1:30
 
 **Argument.** H2 partly confirmed: imbalance always rises, but bends below the linear prediction.
 
@@ -183,7 +205,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 9. Why Error Growth Becomes Sublinear — 1:30
+## 10. Why Error Growth Becomes Sublinear — 1:30
 
 **Argument.** Errors within k−1 bases share one bubble; overlap probability explains the curvature.
 
@@ -204,7 +226,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 10. k-mer Experiment: Results — 1:30
+## 11. k-mer Experiment: Results — 1:30
 
 **Argument.** H3 partly confirmed: a lopsided U for k ≥ 8, driven by different terms on each side — and an unexplained drop at k ≤ 6.
 
@@ -215,7 +237,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 - Left side: only the imbalance term; right side: the component term.
 - Leave k ≤ 6 as a question mark for now.
 
-**Demo / controls.** → shades the motif-collision region, → the valley, → the large-k region. Keep the grey '?' region unexplained — it pays off on slide 12.
+**Demo / controls.** → shades the motif-collision region, → the valley, → the large-k region. Keep the grey '?' region unexplained — it pays off on slide 13.
 
 **Script.**
 
@@ -225,7 +247,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 11. How Coverage Shifts the k-mer Threshold — 1:30
+## 12. How Coverage Shifts the k-mer Threshold — 1:30
 
 **Argument.** The large-k threshold is set by coverage and errors: fewer windows per read, and fewer error-free ones.
 
@@ -246,7 +268,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 12. The Surprise: Zero Degradation — 1:30
+## 13. The Surprise: Zero Degradation — 1:30
 
 **Argument.** The headline: at k = 4 the graph is 99.5% collapsed, yet D = 0 — and a balanced, connected graph can encode thousands of different sequences.
 
@@ -267,7 +289,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 13. Why Our Metric Fails — 1:30
+## 14. Why Our Metric Fails — 1:30
 
 **Argument.** Saturation: when 4^k ≪ G, distinct k-mers saturate, both terms of D vanish, but uniqueness is gone. A limitation of the metric, not of the experiment.
 
@@ -288,7 +310,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 14. Why the Peak Occurs Near k = 8 — 1:00
+## 15. Why the Peak Occurs Near k = 8 — 1:00
 
 **Argument.** The transition sits where 4^k ≈ G, i.e. k ≈ log₄ G ≈ 7.8 for lambda.
 
@@ -308,7 +330,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 15. What the Results Actually Tell Us — 1:00
+## 16. What the Results Actually Tell Us — 1:00
 
 **Argument.** Scorecard and the key distinction between existence, uniqueness and correctness.
 
@@ -328,7 +350,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 16. Conclusion and Future Work — 1:00
+## 17. Conclusion and Future Work — 1:00
 
 **Argument.** Our contribution: quantified, explained degradation — and a concrete limitation of structural metrics.
 

@@ -37,77 +37,84 @@ window.NOTES = [
     script: "Our normalized degradation index has two halves. [→] The orange half is fragmentation: the log of the number of weakly connected components divided by the log of the number of nodes. One component gives zero, every node isolated gives one. We use a logarithm because C ranges from 1 to thousands, and the first breaks are the most important. This example has two components out of ten nodes, giving 0.15. [→] The cyan half is imbalance: for each node, the difference between incoming and outgoing edges, summed, and divided by 2|E|, the worst case. A branch creates two unbalanced nodes here. Note that a linear genome always has imbalance 2 — its start and its end — so a perfect lambda graph scores about 0.00001, not exactly zero. [→] And keep this in mind: D measures structure — whether an Eulerian path can exist. It does not ask whether that path is unique.",
     transition: "Now the first experiment: coverage.",
   },
-  { // 6
+  { // 6 (new) — why this metric
+    argument: "D is built from C and I because the minimum repair needed to make the graph Eulerian depends on exactly those two numbers (Edmonds & Johnson 1973).",
+    points: ["Repair = fewest new edges so the graph has an Euler tour.", "Edmonds & Johnson: R = I/2 for one component; R = Σⱼ max(1, Iⱼ/2) for C ≥ 2, so max(C, I/2) ≤ R ≤ C + I/2.", "Toy: C = 2, I = 6 → exactly 3 added edges make it Eulerian.", "Normalise: I/2 per edge = I/(2|E|); components on a log scale because C spans orders of magnitude.", "Equal weights; D = 0 means no repair needed."],
+    demo: "Step 0: degraded toy graph with its red unbalanced nodes. → the 3 yellow repair edges appear and the graph becomes Eulerian. → normalisation (compare the three options for C). → the final formula.",
+    script: "Why these two ingredients? We asked: what is the smallest number of edges you must add to a broken graph so that it has an Euler tour? Edmonds and Johnson answered this in 1973, in their work on Euler tours and the Chinese postman. With one component you need I over 2 new edges; with several, the sum over components of max(1, I_j over 2) — always between max(C, I/2) and C plus I/2. So the repair cost depends on components and imbalance, and nothing else. [→] Here: two components, imbalance 6, and exactly three yellow edges make it Eulerian. [→] Raw counts grow with the genome, so we normalise: I over 2 per edge is I over 2|E|, and components get a logarithm, because C/|V| stays near zero and 1 − 1/C saturates. [→] Average the two and you get D.",
+    transition: "With the metric defined and motivated, let's look at the first experiment.",
+  },
+  { // 7
     argument: "H1 confirmed: exponential decay — but only after an initial increase.",
     points: ["Peaks: k = 21 → 216 at c ≈ 1–1.5; k = 31 → 252 at c = 1.5; k = 51 → 360 at c = 2.", "One component at c = 12, 15, 20.", "Exponential fits from c ≈ 2: R² 0.988–0.997; decay rates 0.59, 0.50, 0.36.", "Simulation on the right is a toy, labelled as such."],
     demo: "Hover a point for mean ± sd. 'Show original figure' swaps in the matplotlib plot. In the toy panel press Play (or K): islands appear, multiply, then merge. R resets.",
     script: "Error-free reads, coverage from 0.5 to 30, three values of k. The y-axis is logarithmic, so a straight falling line means exponential decay — and from coverage about 2 onwards that is exactly what we see, with R-squared between 0.988 and 0.997. The graph becomes a single component at coverage 12 for k = 21, 15 for k = 31, and 20 for k = 51. The decay rates are 0.59, 0.50 and 0.36 per unit of coverage, so larger k decays more slowly. But look at the left edge: the curves first go up. For k = 51 the component count climbs to 360 at coverage 2 before it starts falling. The panel on the right is a toy simulation on 210 bases of lambda, not the experiment. [Play] With few reads every read is its own island; adding reads makes more islands; and only later do they touch and merge into one colour. So the hypothesis holds, but only after this peak.",
     transition: "Why does the curve rise first? There is a clean formula for that.",
   },
-  { // 7
+  { // 8
     argument: "Lander–Waterman explains both the peak position and its height, with no fitted parameters.",
     points: ["N ≈ cG/L reads.", "A read starts a new island unless the next read shares a k-mer with it: probability ≈ e^(−c(L−k+1)/L).", "Maximise N·e^(−c(L−k+1)/L) → c_peak = L/(L−k+1): 1.25, 1.43, 2.0.", "Model heights 223, 255, 357 vs measured 216, 252, 360.", "Larger k ⇒ fewer k-mers per read ⇒ lower effective coverage."],
     demo: "Press → three times: the toy jumps to c = 0.5, 1.5 and 8 and the matching region lights up on the measured chart. Dotted lines are the parameter-free model.",
     script: "The number of reads is coverage times genome length over read length. A read ends an island unless another read starts close enough to share at least one k-mer, and that close enough window is L minus k plus one bases long. So the expected number of islands is N times e to the minus c times (L − k + 1) over L. [→] At very low coverage N is small, so we only have a few isolated reads. [→] As N grows, the count grows — until the exponential takes over. Setting the derivative to zero gives c-peak equals L over L minus k plus one: 1.25, 1.43 and 2.0 for our three k. The table shows the observed peaks sit exactly there, and even the heights match: the model predicts 255 islands for k = 31, we measured 252. [→] Beyond the peak, overlaps win and islands merge exponentially. The dotted lines have no fitted parameter at all. The key intuition: larger k means fewer k-mers per read, so the effective coverage is lower and everything shifts right.",
     transition: "Second experiment: sequencing errors.",
   },
-  { // 8
+  { // 9
     argument: "H2 partly confirmed: imbalance always rises, but bends below the linear prediction.",
     points: ["c = 30, k = 31, e from 0 to 2%.", "Imbalance per error (minus boundary 2): 1.95, 1.91, 1.63, 1.37, 1.05.", "≈ 30,500 total imbalance at 2%.", "Dashed line = 'every error isolated' model: 2 per substitution."],
     demo: "Hover points for I and number of errors. Point at the gap between the dashed model and the measured curve. Original figure available.",
     script: "Coverage 30, k = 31, and we raise the substitution rate from zero to two percent. The imbalance rises monotonically — no surprise. The dashed yellow line is what you get if every error contributes exactly 2, independently. At low rates the data sits right on it: at 0.05 percent, each error adds 1.95. But the measured curve bends away. At 1 percent each error adds only 1.37, at 2 percent only 1.05, and the total stops at about 30,500 instead of almost 60,000. Where does the number 2 come from? Look at the small graph: an error in the middle of a read creates a bubble. The path leaves the true graph at one node, which now has two outgoing edges, and rejoins at another, which has two incoming edges. Two nodes off by one: plus 2. So the hypothesis is right only while errors are sparse.",
     transition: "Why does it stop being linear? Let's inject errors ourselves.",
   },
-  { // 9
+  { // 10
     argument: "Errors within k−1 bases share one bubble; overlap probability explains the curvature.",
     points: ["Mid-read error → bubble (+2). Error at read end → tip (+2).", "Two errors 2 bp apart → one bigger bubble, still +2 total.", "Two errors far apart → two bubbles, +4.", "P = 1 − (1−e)^(2(k−1)): 6% at 0.1%, 70% at 2%.", "Not every error has identical topology — collisions with existing k-mers can happen."],
     demo: "Click 'Mid-read error' (bubble, I − 2 = 2), 'Error at read end' (tip), '2 errors, 2 bp apart' (one bubble, still 2), '2 errors, far apart' (4). Clicking any base also mutates it. Then drag the e slider to 2%.",
     script: "This is a real graph on 30 bases of lambda, k = 5. Grey is the true path. [Mid-read error] One substitution in the middle of the read: the k windows that contain it are highlighted in the read, they form the orange detour, and the two red nodes are where it leaves and rejoins. Imbalance above the baseline: 2. [Error at read end] Near the end of the read, the detour never rejoins — that is a tip, a dead end. Also plus 2. [2 errors far apart] Two errors far apart: two bubbles, plus 4. Additive. [2 errors close] But two errors only two bases apart: their windows overlap, so they produce one larger bubble, and the total is still 2, not 4. Now, how often does an error have a neighbour within k − 1 bases on either side? One minus (1 − e) to the power 2(k − 1). [slider] At 0.1 percent, about 6 percent of errors. At 2 percent, 70 percent. That is exactly why the per-error contribution falls from 1.95 to 1.05.",
     transition: "Third experiment: varying k — and this is where things get strange.",
   },
-  { // 10
+  { // 11
     argument: "H3 partly confirmed: a lopsided U for k ≥ 8, driven by different terms on each side — and an unexplained drop at k ≤ 6.",
     points: ["Peak D ≈ 0.05 at k = 8–9.", "Valley k ≈ 13–31: ≈ 0 without errors, 0.009–0.017 with errors.", "k = 95: D = 0.38–0.47.", "Left side: only the imbalance term; right side: the component term.", "Leave k ≤ 6 as a question mark for now."],
-    demo: "→ shades the motif-collision region, → the valley, → the large-k region. Keep the grey '?' region unexplained — it pays off on slide 12.",
+    demo: "→ shades the motif-collision region, → the valley, → the large-k region. Keep the grey '?' region unexplained — it pays off on slide 13.",
     script: "Coverage 30, k from 4 to 95 on a log axis, three error rates. Our proposal predicted a U. [→] On the left there is a small peak at k = 8 or 9, about 0.05. Lambda has no long repeats, so this comes from short words that recur by chance — motif collisions. [→] Then a long valley from roughly 13 to 31, where k-mers are distinctive and the graph is almost perfect: zero without errors, around 0.01 to 0.02 with errors. [→] And on the right a steep wall: at k = 95 the index reaches 0.38 to 0.47. The two sides are produced by different terms: the left only by imbalance, the right by fragmentation, which is logarithmic and climbs fast once the graph shatters. So yes, a U — but very asymmetric. And there is something we did not expect at all: below k = 7 the index falls back to zero. Hold that thought.",
     transition: "First, the right side: what moves the wall?",
   },
-  { // 11
+  { // 12
     argument: "The large-k threshold is set by coverage and errors: fewer windows per read, and fewer error-free ones.",
     points: ["e = 0: threshold k* = 31, 51, 61, 71, 81 for c = 10…30.", "e = 0.005: 25, then stuck at 31.", "Windows per read L−k+1: only 6 at k = 95.", "Unsampled ≈ e^(−c(L−k+1)/L) = 55% at k = 95, c = 10; measured 54.7%.", "Error-free probability (1−e)^k shrinks with k."],
     demo: "Click c = 10 … 30 to switch between the measured sweeps; the vertical lines show the threshold. Drag the k slider from 95 down to 31 and watch the windows per read and the unsampled fraction.",
     script: "We define the threshold as the first k where D exceeds 0.05. [click through c] Without errors it moves steadily right with coverage: 31 at coverage 10, 51, 61, 71 and 81 at coverage 30. With half a percent of errors it moves to 31 and then gets stuck there. The arithmetic on the right explains both. [slider] A 100-base read holds L minus k plus one k-mers. At k = 95 that is just six. So at coverage 10 the k-mer coverage is only 0.6, and Poisson says about 55 percent of the genome's k-mers are never sampled. We measured 54.7 percent. More coverage pushes this point to larger k. Errors pull it back: a k-mer is read correctly only with probability (1 − e) to the k, so the longer the k-mer, the less of your coverage is actually usable. Coverage moves the right side. But notice: coverage does nothing at all to the left side.",
     transition: "Which brings us back to the strange left side.",
   },
-  { // 12
+  { // 13
     argument: "The headline: at k = 4 the graph is 99.5% collapsed, yet D = 0 — and a balanced, connected graph can encode thousands of different sequences.",
     points: ["256 possible 4-mers, all 256 present; C = 1; I = 0; D = 0; 99.5% of positions collapsed.", "It is the complete De Bruijn graph: every node 4 in, 4 out.", "Interaction D: a simple cycle and the complete k = 2 graph both have D = 0.", "The complete graph has 20,736 Eulerian circuits (exhaustive count; BEST theorem agrees).", "The illustration is not the genome."],
     demo: "→ reveals the numbers, → D = 0 (pause here), → the complete graph, → switches to Interaction D. There click Traversal 1, 2, 3 or Random: each spells a different valid sequence. K replays traversal 1, R resets.",
     script: "Here is k = 4. [→] There are 256 possible 4-mers. In lambda's graph we observe all 256. One component. Zero imbalance. And 99.5 percent of the k-mer positions in the genome reuse a k-mer we have already seen. [→] Our degradation index is… zero. Exactly zero. At every coverage from 10 to 30, and at every error rate. The index says this is a perfect assembly. [→] What happened is that the graph became the complete De Bruijn graph: 64 nodes, each with exactly four edges in and four out. Connected and balanced — Eulerian. But there is no way to read lambda back out of it. [→] Let me show this on graphs small enough to count. Left: a simple cycle — connected, balanced, D = 0, and exactly one way to traverse it. Right: all sixteen dinucleotides, the complete graph for k = 2. Also connected, balanced, D = 0. [Traversal 1, 2, 3] Every traversal spells a different sequence, and every one is equally valid. We enumerated them: 20,736. Same score. Twenty thousand times the ambiguity.",
     transition: "So why does our metric miss this?",
   },
-  { // 13
+  { // 14
     argument: "Saturation: when 4^k ≪ G, distinct k-mers saturate, both terms of D vanish, but uniqueness is gone. A limitation of the metric, not of the experiment.",
     points: ["Table: collapsed 99.5 → 13.8% and D 0 → 0.051 → 0.036 for k = 4…9 (c = 10, e = 0.001).", "Distinct-edge model keeps one copy of each k-mer.", "Errors cannot add anything: every wrong k-mer already exists.", "k = 6: 43 of 4,096 6-mers never occur in lambda → small imbalance.", "The experiment measured exactly what D defines; D just does not define ambiguity."],
     demo: "Interaction C (210 bp of lambda, all k-mers): k = 2 → all 16 dinucleotides, 92% collapsed, C = 1, I = 0, D = 0. k = 4 → the toy's peak (D ≈ 0.06; log₄ 210 ≈ 3.9). k ≥ 8 → a clean path, D ≈ 0.002. Then click 'reads: c = 4' and push k to 20: components appear and D rises to ≈ 0.27 — the whole asymmetric U in miniature.",
     script: "The mechanism is saturation. Our graph keeps one edge per distinct k-mer. With k = 4 there are only 256 possible words, and lambda has 48,500 positions, so almost every word appears many times and all those copies collapse into one edge. The table shows it: 99.5 percent collapsed at k = 4, 98 at k = 5, 92 at k = 6, and the index is zero, zero, 0.002. Errors cannot hurt either, because every erroneous k-mer already exists in the graph. Why is k = 6 not quite zero? Lambda contains only 4,053 of the 4,096 possible 6-mers; some short motifs are under-used in phages, so the graph is almost, but not exactly, complete. [demo] You can see the same thing in miniature on 210 bases of lambda. At k = 2 all sixteen dinucleotides are present, 92 percent of positions collapse, and D is exactly zero. [k = 4] The toy peaks at k = 4, which is log4 of 210. [k = 10] Then it becomes a clean path. To be clear: this is not a failure of the experiment. The pipeline measured exactly what D defines. [→] The problem is the definition: connected and balanced does not mean uniquely reconstructable.",
     transition: "And the location of that left-side peak can be predicted.",
   },
-  { // 14
+  { // 15
     argument: "The transition sits where 4^k ≈ G, i.e. k ≈ log₄ G ≈ 7.8 for lambda.",
     points: ["Imbalance is largest when the graph is about half full.", "log₄ 48,502 ≈ 7.8 → observed peak k = 8–9, at every coverage.", "Depends on genome length and composition, not coverage.", "Future work: E. coli 4.6 Mb → k ≈ 11."],
     demo: "Point at the intersection. → adds the E. coli line, clearly labelled as a prediction to test.",
     script: "Imbalance is highest when the graph is about half full — when many nodes get an uneven mix of incoming and outgoing edges. That happens when the number of possible k-mers is about the genome length. Four to the k equals G gives k equals log base 4 of G, which for lambda is 7.8. The measured peak is at k = 8 or 9, and on the previous slides it was at the same place for every coverage, which fits: the position depends on genome length and composition, not on how deeply you sequence. [→] This gives a falsifiable prediction. For a 4.6-megabase E. coli chromosome the transition should move to about k = 11. We have not run that yet; it is future work, at about a hundred times the compute.",
     transition: "Let's put the three verdicts side by side.",
   },
-  { // 15
+  { // 16
     argument: "Scorecard and the key distinction between existence, uniqueness and correctness.",
     points: ["Coverage: confirmed after the low-coverage peak.", "Errors: partially — linear only while sparse.", "k: partially — asymmetric U, blind for k ≤ 6.", "Eulerian path exists ≠ unique ≠ correct."],
     demo: "Sparklines are the real measured curves. → reveals the three properties.",
     script: "Here is the scorecard. Coverage: confirmed, once you get past the low-coverage peak, which Lander–Waterman predicts. Errors: partially confirmed — the growth is linear only while errors are sparse, because overlapping error windows share bubbles. k-mer size: partially confirmed — we see an asymmetric U above about log4 G, and below that our index is blind. [→] The deeper lesson is that three properties are easy to confuse. First, does an Eulerian traversal exist? That needs one component and balanced degrees, and it is what our index measures. Second, is that traversal unique? That depends on branching and repeat structure, and our index cannot see it. Third, is the sequence correct? That requires comparing against the reference. Our index measures topology, not reconstruction ambiguity.",
     transition: "To close, what we take away.",
   },
-  { // 16
+  { // 17
     argument: "Our contribution: quantified, explained degradation — and a concrete limitation of structural metrics.",
     points: ["Four findings.", "Future work: ambiguity term, repeat/branching analysis, compare with reconstruction accuracy, larger genomes, k-mer filtering.", "Closing line."],
     demo: "The graph keeps tracing new valid traversals of the same balanced graph. → future work, → closing quote.",

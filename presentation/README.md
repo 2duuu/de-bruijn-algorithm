@@ -1,6 +1,6 @@
 # When De Bruijn Graphs Break — interactive presentation
 
-20-minute, 16-slide HTML presentation of our research project *Analyzing the Degradation of De Bruijn Graphs in Genome Assembly* (Tudor Pisica & Andrei Stan, Monday 23 November 2026).
+About 21-minute, 17-slide HTML presentation of our research project *Analyzing the Degradation of De Bruijn Graphs in Genome Assembly* (Tudor Pisica & Andrei Stan, Monday 23 November 2026).
 
 Plain HTML/CSS/JS. You don't need to build or install anything, and it works without internet access.
 
@@ -35,7 +35,7 @@ The slide stage is authored at 1920×1080 and scaled to fit any window, so the l
 
 Moving the mouse shows a control bar (prev/next, play, reset, timer, notes, presenter, fullscreen). The URL hash (`#7`) keeps your slide across reloads.
 
-## Slides and timing (20:00)
+## Slides and timing (21:00)
 
 | # | Slide | Time | Interaction |
 |---|---|---|---|
@@ -44,19 +44,20 @@ Moving the mouse shows a control bar (prev/next, play, reset, timer, notes, pres
 | 3 | Our hypotheses | 1:00 | conceptual sketches (labelled as hypotheses) |
 | 4 | Research pipeline | 1:00 | read → k-mers → graph animation |
 | 5 | Defining graph degradation | 1:00 | computed mini-graphs |
-| 6 | Coverage: results | 1:30 | measured chart + **Interaction A** |
-| 7 | Why rise then fall | 1:30 | Lander–Waterman model vs data, 3-stage toy |
-| 8 | Errors: results | 1:30 | measured chart vs isolated-error model |
-| 9 | Why sublinear | 1:30 | **Interaction B** (error injection) |
-| 10 | k-mer: results | 1:30 | measured chart with staged regions |
-| 11 | Coverage shifts the threshold | 1:30 | per-coverage measured sweeps, windows-per-read slider |
-| 12 | The surprise: zero degradation | 1:30 | k = 4 reveal, then **Interaction D** (paradox) |
-| 13 | Why our metric fails | 1:30 | measured table + **Interaction C** (k explorer) |
-| 14 | Why the peak is near k = 8 | 1:00 | 4ᵏ vs G, measured D near the peak |
-| 15 | What the results tell us | 1:00 | verdicts with measured sparklines |
-| 16 | Conclusion & future work | 1:00 | balanced graph tracing new genomes |
+| 6 | Why we chose this metric | 1:00 | Edmonds–Johnson repair cost on an exact toy graph |
+| 7 | Coverage: results | 1:30 | measured chart + **Interaction A** |
+| 8 | Why rise then fall | 1:30 | Lander–Waterman model vs data, 3-stage toy |
+| 9 | Errors: results | 1:30 | measured chart vs isolated-error model |
+| 10 | Why sublinear | 1:30 | **Interaction B** (error injection) |
+| 11 | k-mer: results | 1:30 | measured chart with staged regions |
+| 12 | Coverage shifts the threshold | 1:30 | per-coverage measured sweeps, windows-per-read slider |
+| 13 | The surprise: zero degradation | 1:30 | k = 4 reveal, then **Interaction D** (paradox) |
+| 14 | Why our metric fails | 1:30 | measured table + **Interaction C** (k explorer) |
+| 15 | Why the peak is near k = 8 | 1:00 | 4ᵏ vs G, measured D near the peak |
+| 16 | What the results tell us | 1:00 | verdicts with measured sparklines |
+| 17 | Conclusion & future work | 1:00 | balanced graph tracing new genomes |
 
-The full spoken script is in [PRESENTER_SCRIPT.md](PRESENTER_SCRIPT.md) (about 2,400 words, ≈ 17 min spoken at 140 wpm, plus about 3 min for demos and pauses). The same notes appear in the `N` overlay and the `P` presenter window.
+The full spoken script is in [PRESENTER_SCRIPT.md](PRESENTER_SCRIPT.md) (about 2,570 words, ≈ 18 min spoken at 140 wpm, plus about 3 min for demos and pauses). The same notes appear in the `N` overlay and the `P` presenter window.
 
 ## Measured vs. illustrative content
 
