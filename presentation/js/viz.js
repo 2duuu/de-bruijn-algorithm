@@ -146,69 +146,125 @@
   const stat = (k, id, cls = "") => `<div class="stat"><div class="k">${k}</div><div class="v ${cls}" data-s="${id}">–</div></div>`;
   const setS = (root, id, v) => { const e = root.querySelector(`[data-s="${id}"]`); if (e) e.textContent = v; };
 
-  // ------------------------------------------------- Demo A: coverage → islands
-  function CoverageDemo(root) {
-    const seq = Toy.LAMBDA_EXCERPT, G = seq.length, L = 30, k = 11;
-    const maxN = Math.round(12 * G / L);
+  // ------------------------------------------------- Demo A: read pileup over the genome
+  // Toy: first 210 bp of lambda, L = 30, k = 11, seeded uniform reads (e = 0),
+  // drawn in genome terms: reads stack over a genome bar, overlapping reads (≥ k−1 bp) share an
+  // island colour, gaps are red, and a small curve tracks island count against coverage.
+  function PileupDemo(root) {
+    const seq = Toy.LAMBDA_EXCERPT, G = seq.length, L = 30, k = 11, CMAX = 12;
+    const maxN = Math.round(CMAX * G / L);
     const starts = Toy.readStarts(G, L, maxN, 20261123);
+    const cPeak = L / (L - k + 1);
     root.innerHTML = `
-      <div class="stack" style="height:100%">
-        <div class="ctrl-row"><span>coverage <i>c</i></span><input type="range" min="0" max="12" step="0.25" value="0" data-r="c"><span class="readout" data-s="c"></span>
+      <div class="stack" style="height:100%;gap:12px">
+        <div class="ctrl-row"><span>coverage <i>c</i></span><input type="range" min="0" max="${CMAX}" step="0.25" value="0" data-r="c"><span class="readout" data-s="c"></span>
           <button class="btn" data-b="play">▶ Play</button><button class="btn" data-b="reset">↺ Reset</button></div>
         <div style="flex:1;min-height:0" data-g></div>
-        <div class="strip"><span>N<b data-s="n"></b></span><span>components<b class="c-orange" data-s="C"></b></span><span>unseen<b data-s="miss"></b></span><span>D<b class="c-cyan" data-s="D"></b></span></div>
-        <div class="small" style="font-size:18px">Toy: first ${G} bp of λ, L = ${L}, k = ${k}, e = 0, seeded reads. Grey = unsampled. Toy c<sub>peak</sub> = L/(L−k+1) = ${(L / (L - k + 1)).toFixed(2)}.</div>
+        <div class="strip"><span>reads<b data-s="n"></b></span><span>islands<b class="c-orange" data-s="C"></b></span><span>genome covered<b data-s="cov"></b></span></div>
+        <div class="small" style="font-size:18px">Toy: first ${G} bp of λ, L = ${L}, k = ${k}, e = 0. Reads overlapping by ≥ k − 1 = ${k - 1} bp join one island.</div>
       </div>`;
-    const W = 860, H = 250;
-    const view = new GraphView(root.querySelector("[data-g]"), { w: W, h: H, r: 6.5, labels: false, arrows: false, edgeWidth: 4 });
-    // fixed "genome order" snake layout: node = (k-1)-mer at genome position i
-    const allNodes = Toy.kmersOf(seq, k - 1);
-    const rows = 4, perRow = Math.ceil(allNodes.length / rows);
-    const pos = new Map();
-    allNodes.forEach((id, i) => {
-      if (pos.has(id)) return;
-      const r = Math.floor(i / perRow), j = i % perRow;
-      const x = 30 + (r % 2 ? perRow - 1 - j : j) * ((W - 60) / (perRow - 1));
-      pos.set(id, { x, y: 25 + r * ((H - 50) / (rows - 1)) });
+    const W = 860, H = 300;
+    const PL = { x0: 20, x1: W - 20, top: 6, bottom: 132 };  // pileup area
+    const BAR = { y: 142, h: 20 };                           // genome bar
+    const CU = { x0: 60, x1: W - 20, top: 196, bottom: 282 }; // island-count curve
+    const sx = (p) => PL.x0 + (p / G) * (PL.x1 - PL.x0);
+    const svg = mk("svg", { viewBox: `0 0 ${W} ${H}`, style: "width:100%;height:100%;display:block", preserveAspectRatio: "xMidYMid meet" }, root.querySelector("[data-g]"));
+
+    // stable row for every read (insertion order), so earlier reads never move as c grows
+    const rowSpans = [], rows = starts.map((s) => {
+      // first row where this read overlaps no earlier read (2 bp breathing room)
+      let r = rowSpans.findIndex((sp) => sp.every(([a, b]) => s + L + 2 <= a || s >= b + 2));
+      if (r < 0) { r = rowSpans.length; rowSpans.push([]); }
+      rowSpans[r].push([s, s + L]);
+      return r;
     });
-    // faint background of all genome positions
-    const bg = mk("g", {}, view.svg); view.svg.insertBefore(bg, view.gE);
-    for (const p of pos.values()) mk("circle", { cx: p.x, cy: p.y, r: 3, fill: "#2a3956" }, bg);
-    const genomeKmers = new Set(Toy.kmersOf(seq, k));
-    let c = 1, timer = null;
+
+    // islands for the first N reads: merge sorted reads that overlap by ≥ k−1 bp
+    function islandsOf(N) {
+      const idx = Array.from({ length: N }, (_, i) => i).sort((a, b) => starts[a] - starts[b]);
+      const isl = [], of = new Array(N);
+      for (const i of idx) {
+        const s = starts[i], last = isl[isl.length - 1];
+        if (last && s <= last.end - (k - 1)) { last.end = Math.max(last.end, s + L); of[i] = isl.length - 1; }
+        else { isl.push({ start: s, end: s + L }); of[i] = isl.length - 1; }
+      }
+      return { isl, of };
+    }
+    // island count over the full coverage grid, from the real graph (components)
+    const grid = [];
+    for (let c = 0; c <= CMAX + 1e-9; c += 0.25) {
+      const N = Math.round(c * G / L);
+      const km = []; for (let i = 0; i < N; i++) km.push(...Toy.kmersOf(seq.slice(starts[i], starts[i] + L), k));
+      grid.push({ c, C: N ? Toy.build(km).C : 0 });
+      if (N && islandsOf(N).isl.length !== grid[grid.length - 1].C) console.warn("pileup islands ≠ graph components at c =", c);
+    }
+    const Cmax = Math.max(...grid.map((g) => g.C));
+    const cx = (c) => CU.x0 + (c / CMAX) * (CU.x1 - CU.x0), cy = (C) => CU.bottom - (C / Cmax) * (CU.bottom - CU.top);
+
+    // static layers: curve axes + full curve, cPeak marker
+    const gCurve = mk("g", {}, svg);
+    mk("line", { x1: CU.x0, x2: CU.x1, y1: CU.bottom, y2: CU.bottom, stroke: "#3a4b6b", "stroke-width": 1.5 }, gCurve);
+    mk("line", { x1: CU.x0, x2: CU.x0, y1: CU.top, y2: CU.bottom, stroke: "#3a4b6b", "stroke-width": 1.5 }, gCurve);
+    const lab = (x, y, t, a = {}) => { const e = mk("text", { x, y, fill: "#7d8aa3", "font-size": 15, "font-family": "Consolas, monospace", ...a }, gCurve); e.textContent = t; return e; };
+    lab(CU.x0 - 8, CU.top + 5, String(Cmax), { "text-anchor": "end" }); lab(CU.x0 - 8, CU.bottom + 5, "0", { "text-anchor": "end" });
+    lab(CU.x0 - 44, (CU.top + CU.bottom) / 2 + 5, "islands", { transform: `rotate(-90 ${CU.x0 - 44} ${(CU.top + CU.bottom) / 2})`, "text-anchor": "middle" });
+    [0, 3, 6, 9, 12].forEach((c) => lab(cx(c), CU.bottom + 17, "c=" + c, { "text-anchor": "middle" }));
+    mk("line", { x1: cx(cPeak), x2: cx(cPeak), y1: CU.top, y2: CU.bottom, stroke: COL.yellow, "stroke-width": 1.5, "stroke-dasharray": "4 5" }, gCurve);
+    lab(cx(cPeak) + 6, CU.top + 12, `c_peak = L/(L−k+1) = ${cPeak.toFixed(1)}`, { fill: COL.yellow });
+    mk("path", { d: grid.map((g, i) => `${i ? "L" : "M"}${cx(g.c)},${cy(g.C)}`).join(""), fill: "none", stroke: "#3b4a66", "stroke-width": 2.5 }, gCurve);
+    const trail = mk("path", { fill: "none", stroke: COL.orange, "stroke-width": 3.5, "stroke-linejoin": "round" }, gCurve);
+    const dot = mk("circle", { r: 7, fill: COL.orange, stroke: "#060a14", "stroke-width": 2.5 }, gCurve);
+
+    // dynamic layers
+    const gReads = mk("g", {}, svg), gBar = mk("g", {}, svg);
+    const readEls = starts.map((s, i) => mk("rect", { x: sx(s), width: sx(s + L) - sx(s), rx: 2, opacity: 0, style: "transition: opacity .35s, fill .35s, y .35s, height .35s" }, gReads));
+
+    let c = 0, timer = null, shown = 0;
     const slider = root.querySelector('[data-r="c"]');
     function render() {
       const N = Math.round(c * G / L);
-      const km = [];
-      for (let i = 0; i < N; i++) km.push(...Toy.kmersOf(seq.slice(starts[i], starts[i] + L), k));
-      const g = Toy.build(km);
-      // colour components by size order for stability
-      const sizes = new Map();
-      for (const n of g.nodes.values()) sizes.set(n.comp, (sizes.get(n.comp) || 0) + 1);
-      const order = [...sizes.keys()].sort((a, b) => sizes.get(b) - sizes.get(a));
-      const cmap = new Map(order.map((id, i) => [id, COMP_COLORS[i % COMP_COLORS.length]]));
-      view.update(g, pos, {
-        node: (n) => ({ fill: cmap.get(n.comp), stroke: cmap.get(n.comp) }),
-        edge: (e) => ({ color: cmap.get(g.nodes.get(e.u).comp), width: 4 }),
+      const { isl, of } = islandsOf(N);
+      const colour = (j) => COMP_COLORS[j % COMP_COLORS.length];
+      // row height adapts to the rows in use: thick reads at low c, thinner as they stack
+      const used = N ? Math.max(...rows.slice(0, N)) + 1 : 1;
+      const rowH = Math.min(16, (PL.bottom - PL.top) / used);
+      readEls.forEach((r, i) => { r.style.y = (PL.bottom - (rows[i] + 1) * rowH + 1) + "px"; r.style.height = Math.max(3, rowH - (rowH > 6 ? 2 : 1)) + "px"; });
+      readEls.forEach((r, i) => {
+        if (i < N) { r.setAttribute("opacity", 0.9); r.style.fill = i >= shown && shown > 0 ? COL.yellow : colour(of[i]); }
+        else r.setAttribute("opacity", 0);
       });
-      const seen = [...genomeKmers].filter((x) => g.counts.has(x)).length;
-      setS(root, "c", c.toFixed(2)); setS(root, "n", N); setS(root, "C", g.E ? g.C : 0);
-      setS(root, "miss", ((1 - seen / genomeKmers.size) * 100).toFixed(0) + "%"); setS(root, "D", fmtD(g.D));
+      if (N > shown) setTimeout(() => readEls.forEach((r, i) => { if (i < Math.round(c * G / L)) r.style.fill = colour(islandsOf(Math.round(c * G / L)).of[i]); }), 380);
+      shown = N;
+      // genome bar: grey base, island segments, red gaps between islands
+      gBar.innerHTML = "";
+      mk("rect", { x: PL.x0, y: BAR.y, width: PL.x1 - PL.x0, height: BAR.h, rx: 5, fill: N ? "#5a1f29" : "#22314d" }, gBar);
+      isl.forEach((s, j) => mk("rect", { x: sx(s.start), y: BAR.y, width: sx(s.end) - sx(s.start), height: BAR.h, fill: colour(j) }, gBar));
+      for (let j = 1; j < isl.length; j++) if (isl[j].start < isl[j - 1].end) mk("line", { x1: sx(isl[j].start), x2: sx(isl[j].start), y1: BAR.y - 5, y2: BAR.y + BAR.h + 5, stroke: COL.red, "stroke-width": 4 }, gBar);
+      const t = mk("text", { x: PL.x0, y: BAR.y + BAR.h + 22, fill: "#7d8aa3", "font-size": 15, "font-family": "Consolas, monospace" }, gBar);
+      t.textContent = "genome (210 bp) · colour = island · red = gap";
+      // curve trail up to current c
+      const upTo = grid.filter((g) => g.c <= c + 1e-9);
+      trail.setAttribute("d", upTo.map((g, i) => `${i ? "L" : "M"}${cx(g.c)},${cy(g.C)}`).join(""));
+      const cur = upTo[upTo.length - 1];
+      dot.setAttribute("cx", cx(cur.c)); dot.setAttribute("cy", cy(cur.C));
+      const covered = new Uint8Array(G); for (let i = 0; i < N; i++) covered.fill(1, starts[i], starts[i] + L);
+      setS(root, "c", c.toFixed(2)); setS(root, "n", N); setS(root, "C", cur.C);
+      setS(root, "cov", Math.round((covered.reduce((a, b) => a + b, 0) / G) * 100) + "%");
       slider.value = c;
     }
     slider.oninput = () => { c = +slider.value; stopPlay(); render(); };
     function stopPlay() { clearInterval(timer); timer = null; root.querySelector('[data-b="play"]').textContent = "▶ Play"; }
     function toggle() {
       if (timer) return stopPlay();
-      if (c >= 12) c = 0;
+      if (c >= CMAX) { c = 0; shown = 0; }
       root.querySelector('[data-b="play"]').textContent = "❚❚ Pause";
-      timer = setInterval(() => { c = Math.min(12, c + 0.25); render(); if (c >= 12) stopPlay(); }, 380);
+      timer = setInterval(() => { c = Math.min(CMAX, c + 0.25); render(); if (c >= CMAX) stopPlay(); }, 380);
     }
-    function reset() { stopPlay(); c = 0; render(); }
+    function reset() { stopPlay(); c = 0; shown = 0; render(); }
     root.querySelector('[data-b="play"]').onclick = toggle;
     root.querySelector('[data-b="reset"]').onclick = reset;
-    render();
-    return { toggle, reset, destroy: () => { stopPlay(); view.stop(); }, set: (v) => { stopPlay(); c = v; render(); } };
+    c = 1; render();
+    return { toggle, reset, destroy: stopPlay, set: (v) => { stopPlay(); c = v; render(); } };
   }
 
   // ------------------------------------------------- Demo B: error injection
@@ -425,5 +481,5 @@
     return { reset, play: () => play(SEEDS[1]), destroy: () => { clearInterval(timer); vl.stop(); vr.stop(); }, counts: { cntL, cntR } };
   }
 
-  window.Viz = { GraphView, CoverageDemo, ErrorDemo, KDemo, ParadoxDemo, COL, COMP_COLORS, mk, fmtD, cyclicKmers };
+  window.Viz = { GraphView, PileupDemo, ErrorDemo, KDemo, ParadoxDemo, COL, COMP_COLORS, mk, fmtD, cyclicKmers };
 })();

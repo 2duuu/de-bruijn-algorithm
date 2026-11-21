@@ -411,7 +411,7 @@
       </div>`,
       enter(el) {
         bindCharts(el, { cov: (b) => covChart(b) });
-        demo = Viz.CoverageDemo(el.querySelector("[data-demo]"));
+        demo = Viz.PileupDemo(el.querySelector("[data-demo]"));
       },
       leave() { demo && demo.destroy(); },
       toggle() { demo && demo.toggle(); }, reset() { demo && demo.reset(); },
@@ -454,7 +454,7 @@
           ${peaks.map((p) => `<tr><td>${p.k}</td><td class="c-yellow">${p.cp.toFixed(2)}</td><td>${p.k === 21 ? "1–1.5" : p.obsAt}</td><td class="c-yellow">${Math.round(p.model)}</td><td>${Math.round(p.obs)}</td></tr>`).join("")}</table></div>
         </div>
       </div>`,
-      enter(el) { el0 = el; demo = Viz.CoverageDemo(el.querySelector("[data-demo]")); draw(Deck.step); },
+      enter(el) { el0 = el; demo = Viz.PileupDemo(el.querySelector("[data-demo]")); draw(Deck.step); },
       onStep(s) { if (el0 && el0.classList.contains("active")) { draw(s); const t = el0.querySelector("[data-stage]"); if (t) t.textContent = s ? `stage ${s}/3 · ${STAGE[s].label} (toy c = ${STAGE[s].c})` : "step through: few reads → peak → merge"; } },
       leave() { demo && demo.destroy(); },
       toggle() { demo && demo.toggle(); }, reset() { demo && demo.reset(); },

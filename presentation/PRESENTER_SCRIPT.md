@@ -12,7 +12,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 | 4 | Research Pipeline | 1:00 | 136 | 0:58 |
 | 5 | Defining Graph Degradation | 1:00 | 150 | 1:04 |
 | 6 | Why We Chose This Metric | 1:00 | 139 | 1:00 |
-| 7 | Coverage Experiment: Results | 1:30 | 163 | 1:10 |
+| 7 | Coverage Experiment: Results | 1:30 | 205 | 1:28 |
 | 8 | Why the Curve First Rises, Then Falls | 1:30 | 178 | 1:16 |
 | 9 | Sequencing Error Experiment: Results | 1:30 | 148 | 1:03 |
 | 10 | Why Error Growth Becomes Sublinear | 1:30 | 165 | 1:11 |
@@ -23,7 +23,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 | 15 | Why the Peak Occurs Near k = 8 | 1:00 | 132 | 0:57 |
 | 16 | What the Results Actually Tell Us | 1:00 | 123 | 0:53 |
 | 17 | Conclusion and Future Work | 1:00 | 146 | 1:03 |
-| | **Total** | **21:00** | **2567** | **18:20** |
+| | **Total** | **21:00** | **2609** | **18:38** |
 
 ---
 
@@ -154,11 +154,11 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 - Exponential fits from c ≈ 2: R² 0.988–0.997; decay rates 0.59, 0.50, 0.36.
 - Simulation on the right is a toy, labelled as such.
 
-**Demo / controls.** Hover a point for mean ± sd. 'Show original figure' swaps in the matplotlib plot. In the toy panel press Play (or K): islands appear, multiply, then merge. R resets.
+**Demo / controls.** Hover a point for mean ± sd. 'Show original figure' swaps in the matplotlib plot. In the toy panel press Play (or K): reads drop onto the genome bar; each colour is one island, dark red is uncovered genome, and the small curve traces island count against c. R resets.
 
 **Script.**
 
-> Error-free reads, coverage from 0.5 to 30, three values of k. The y-axis is logarithmic, so a straight falling line means exponential decay — and from coverage about 2 onwards that is exactly what we see, with R-squared between 0.988 and 0.997. The graph becomes a single component at coverage 12 for k = 21, 15 for k = 31, and 20 for k = 51. The decay rates are 0.59, 0.50 and 0.36 per unit of coverage, so larger k decays more slowly. But look at the left edge: the curves first go up. For k = 51 the component count climbs to 360 at coverage 2 before it starts falling. The panel on the right is a toy simulation on 210 bases of lambda, not the experiment. [Play] With few reads every read is its own island; adding reads makes more islands; and only later do they touch and merge into one colour. So the hypothesis holds, but only after this peak.
+> Error-free reads, coverage from 0.5 to 30, three values of k. The y-axis is logarithmic, so a straight falling line means exponential decay — and from coverage about 2 onwards that is exactly what we see, with R-squared between 0.988 and 0.997. The graph becomes a single component at coverage 12 for k = 21, 15 for k = 31, and 20 for k = 51. The decay rates are 0.59, 0.50 and 0.36 per unit of coverage, so larger k decays more slowly. But look at the left edge: the curves first go up. For k = 51 the component count climbs to 360 at coverage 2 before it starts falling. The panel on the right is a toy simulation on 210 bases of lambda, not the experiment. [Play] Each bar is a read; reads that overlap by at least k − 1 bases share a colour, and each colour is an island. With few reads, each new read lands in empty space and starts a new island; only later do reads bridge the gaps until the whole genome is one colour — and the little curve underneath rises and falls just like the measured one. So the hypothesis holds, but only after this peak.
 
 **Transition.** Why does the curve rise first? There is a clean formula for that.
 
@@ -175,7 +175,7 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 - Model heights 223, 255, 357 vs measured 216, 252, 360.
 - Larger k ⇒ fewer k-mers per read ⇒ lower effective coverage.
 
-**Demo / controls.** Press → three times: the toy jumps to c = 0.5, 1.5 and 8 and the matching region lights up on the measured chart. Dotted lines are the parameter-free model.
+**Demo / controls.** Press → three times: the toy pileup jumps to c = 0.5, 1.5 and 8 (2 → 4 → 1 islands) and the matching region lights up on the measured chart. Dotted lines are the parameter-free model.
 
 **Script.**
 
