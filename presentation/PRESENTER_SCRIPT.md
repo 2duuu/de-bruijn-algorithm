@@ -18,14 +18,17 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 | 10 | Why We Expected Linear Growth | 1:00 | 138 | 0:59 |
 | 11 | Why Error Growth Becomes Sublinear | 1:30 | 117 | 0:50 |
 | 12 | Counting Bubbles, Not Errors | 1:00 | 212 | 1:31 |
-| 13 | k-mer Experiment: Results | 1:30 | 156 | 1:07 |
-| 14 | How Coverage Shifts the k-mer Threshold | 1:30 | 154 | 1:06 |
-| 15 | The Surprise: Zero Degradation | 1:30 | 172 | 1:14 |
-| 16 | Why Our Metric Fails | 1:30 | 197 | 1:24 |
-| 17 | Why the Peak Occurs Near k = 8 | 1:00 | 132 | 0:57 |
-| 18 | What the Results Actually Tell Us | 1:00 | 123 | 0:53 |
-| 19 | Conclusion and Future Work | 1:00 | 146 | 1:03 |
-| | **Total** | **23:00** | **2869** | **20:30** |
+| 13 | k-mer Experiment: Results | 1:30 | 158 | 1:08 |
+| 14 | What Drives Each Zone | 1:30 | 196 | 1:24 |
+| 15 | How Coverage Shifts the k-mer Threshold | 1:30 | 154 | 1:06 |
+| 16 | The Surprise: Zero Degradation | 1:00 | 105 | 0:45 |
+| 17 | An Eulerian Path Exists, but It Is Not Unique | 0:45 | 67 | 0:29 |
+| 18 | Why Our Metric Fails | 1:30 | 197 | 1:24 |
+| 19 | Why the Peak Occurs Near k = 8 | 1:00 | 132 | 0:57 |
+| 20 | Why the Imbalance Peaks at k ≈ 8 | 1:00 | 182 | 1:18 |
+| 21 | What the Results Actually Tell Us | 1:00 | 123 | 0:53 |
+| 22 | Conclusion and Future Work | 1:00 | 216 | 1:33 |
+| | **Total** | **25:45** | **3319** | **23:42** |
 
 ---
 
@@ -280,25 +283,46 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 - Left side: only the imbalance term; right side: the component term.
 - Leave k ≤ 6 as a question mark for now.
 
-**Demo / controls.** → shades the motif-collision region, → the valley, → the large-k region. Keep the grey '?' region unexplained — it pays off on slide 15.
+**Demo / controls.** → shades the k-mer-repeat region, → the valley, → the large-k region. Keep the grey '?' region unexplained — it pays off on slide 16.
 
 **Script.**
 
-> Coverage 30, k from 4 to 95 on a log axis, three error rates. Our proposal predicted a U. [→] On the left there is a small peak at k = 8 or 9, about 0.05. Lambda has no long repeats, so this comes from short words that recur by chance — motif collisions. [→] Then a long valley from roughly 13 to 31, where k-mers are distinctive and the graph is almost perfect: zero without errors, around 0.01 to 0.02 with errors. [→] And on the right a steep wall: at k = 95 the index reaches 0.38 to 0.47. The two sides are produced by different terms: the left only by imbalance, the right by fragmentation, which is logarithmic and climbs fast once the graph shatters. So yes, a U — but very asymmetric. And there is something we did not expect at all: below k = 7 the index falls back to zero. Hold that thought.
+> Coverage 30, k from 4 to 95 on a log axis, three error rates. Our proposal predicted a U. [→] On the left there is a small peak at k = 8 or 9, about 0.05. Lambda has no long repeats, so this comes from short k-mers that repeat by chance — k-mer repeats, or collisions. [→] Then a long valley from roughly 13 to 31, where k-mers are distinctive and the graph is almost perfect: zero without errors, around 0.01 to 0.02 with errors. [→] And on the right a steep wall: at k = 95 the index reaches 0.38 to 0.47. The two sides are produced by different terms: the left only by imbalance, the right by fragmentation, which is logarithmic and climbs fast once the graph shatters. So yes, a U — but very asymmetric. And there is something we did not expect at all: below k = 7 the index falls back to zero. Hold that thought.
+
+**Transition.** Why does each zone behave like that?
+
+---
+
+## 14. What Drives Each Zone — 1:30
+
+**Argument.** Three regimes of k: low k → accidental k-mer repeats unbalance nodes; middle k → unique, overlapping k-mers give one balanced path; high k → reads stop overlapping and the graph shatters.
+
+**Points to make**
+- k ≈ 7–9: 4^k ≈ G, so k-mers repeat at unrelated places by accident; merged nodes have unequal in/out → I ≈ 6,100, C = 1, D ≈ 0.05 (k = 8, e = 0).
+- k ≈ 13–31: unique (4^k ≫ G) and still ≥ 70 k-mers per read → one balanced path: C = 1, I = 2, D ≈ 0 (k = 31, e = 0).
+- k ≳ 50: reads must overlap by ≥ k−1 bases to connect; only L−k+1 = 6 k-mers per read at k = 95 → 17% of k-mers never sampled, ≈ 2,100 components, D ≈ 0.38.
+- Errors worsen the right side: a k-mer is error-free with probability (1−e)^k.
+- Left peak = imbalance term; right wall = component term. k ≤ 6 is still the open question.
+
+**Demo / controls.** → twice: the k-mer-repeat zone, then the valley, then the right wall. All numbers are means of the c = 30 k-mer sweep.
+
+**Script.**
+
+> Why does each zone behave the way it does? On the left, k is low, so there are only a few tens of thousands of possible k-mers, about as many as positions in lambda. The same k-mer turns up at unrelated places purely by accident, and the graph merges them into one node. Here, two different k-mers come in, but only one shared k-mer goes out, so the node is off by one. Thousands of these give an imbalance of about 6,000 at k = 8, but the graph is still one piece. [→] In the middle, k-mers are long enough to be unique, and every read still holds at least 70 of them, so neighbouring reads always share one. One balanced path, D essentially zero. [→] On the right, reads connect only if they overlap by at least k − 1 bases. At k = 95 a read holds just six k-mers, so many neighbouring reads share none, and the graph breaks into about 2,000 components. Errors make it worse, because a long k-mer is less likely to be read correctly. So the left peak comes from the imbalance term, the right wall from the component term.
 
 **Transition.** First, the right side: what moves the wall?
 
 ---
 
-## 14. How Coverage Shifts the k-mer Threshold — 1:30
+## 15. How Coverage Shifts the k-mer Threshold — 1:30
 
 **Argument.** The large-k threshold is set by coverage and errors: fewer windows per read, and fewer error-free ones.
 
 **Points to make**
 - e = 0: threshold k* = 31, 51, 61, 71, 81 for c = 10…30.
 - e = 0.005: 25, then stuck at 31.
-- Windows per read L−k+1: only 6 at k = 95.
-- Unsampled ≈ e^(−c(L−k+1)/L) = 55% at k = 95, c = 10; measured 54.7%.
+- k-mers per read L−k+1: only 6 at k = 95.
+- Chance a k-mer is not read at all ≈ e^(−c(L−k+1)/L) = 55% at k = 95, c = 10; measured 54.7%.
 - Error-free probability (1−e)^k shrinks with k.
 
 **Demo / controls.** Click c = 10 … 30 to switch between the measured sweeps; the vertical lines show the threshold. Drag the k slider from 95 down to 31 and watch the windows per read and the unsampled fraction.
@@ -311,28 +335,47 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 15. The Surprise: Zero Degradation — 1:30
+## 16. The Surprise: Zero Degradation — 1:00
 
 **Argument.** The headline: at k = 4 the graph is 99.5% collapsed, yet D = 0 — and a balanced, connected graph can encode thousands of different sequences.
 
 **Points to make**
 - 256 possible 4-mers, all 256 present; C = 1; I = 0; D = 0; 99.5% of positions collapsed.
 - It is the complete De Bruijn graph: every node 4 in, 4 out.
-- Interaction D: a simple cycle and the complete k = 2 graph both have D = 0.
-- The complete graph has 20,736 Eulerian circuits (exhaustive count; BEST theorem agrees).
-- The illustration is not the genome.
+- D = 0 says an Eulerian path exists, not that it is unique.
 
-**Demo / controls.** → reveals the numbers, → D = 0 (pause here), → the complete graph, → switches to Interaction D. There click Traversal 1, 2, 3 or Random: each spells a different valid sequence. K replays traversal 1, R resets.
+**Demo / controls.** → reveals the numbers, → D = 0 (pause here), → the complete graph.
 
 **Script.**
 
-> Here is k = 4. [→] There are 256 possible 4-mers. In lambda's graph we observe all 256. One component. Zero imbalance. And 99.5 percent of the k-mer positions in the genome reuse a k-mer we have already seen. [→] Our degradation index is… zero. Exactly zero. At every coverage from 10 to 30, and at every error rate. The index says this is a perfect assembly. [→] What happened is that the graph became the complete De Bruijn graph: 64 nodes, each with exactly four edges in and four out. Connected and balanced — Eulerian. But there is no way to read lambda back out of it. [→] Let me show this on graphs small enough to count. Left: a simple cycle — connected, balanced, D = 0, and exactly one way to traverse it. Right: all sixteen dinucleotides, the complete graph for k = 2. Also connected, balanced, D = 0. [Traversal 1, 2, 3] Every traversal spells a different sequence, and every one is equally valid. We enumerated them: 20,736. Same score. Twenty thousand times the ambiguity.
+> Here is k = 4. [→] There are 256 possible 4-mers. In lambda's graph we observe all 256. One component. Zero imbalance. And 99.5 percent of the k-mer positions in the genome reuse a k-mer we have already seen. [→] Our degradation index is… zero. Exactly zero. At every coverage from 10 to 30, and at every error rate. The index says this is a perfect assembly. [→] What happened is that the graph became the complete De Bruijn graph: 64 nodes, each with exactly four edges in and four out. Connected and balanced — Eulerian. But there is no way to read lambda back out of it.
+
+**Transition.** Let me show this on graphs small enough to count.
+
+---
+
+## 17. An Eulerian Path Exists, but It Is Not Unique — 0:45
+
+**Argument.** An Eulerian path exists, but it is not unique: two graphs with identical C, I and D = 0 have 1 versus 20,736 valid traversals.
+
+**Points to make**
+- Left: a simple cycle — C = 1, I = 0, D = 0, exactly 1 Eulerian circuit.
+- Right: the complete k = 2 graph (all 16 dinucleotides) — also C = 1, I = 0, D = 0.
+- It has 20,736 Eulerian circuits (exhaustive count; BEST theorem (4!)⁴/4² agrees).
+- Each traversal spells a different, equally valid sequence.
+- The illustration is not the genome.
+
+**Demo / controls.** Click Traversal 1, 2, 3 or Random: each spells a different valid sequence. K replays traversal 1, R resets.
+
+**Script.**
+
+> Left: a simple cycle — connected, balanced, D = 0, and exactly one way to traverse it. Right: all sixteen dinucleotides, the complete graph for k = 2. Also connected, balanced, D = 0. [Traversal 1, 2, 3] Every traversal spells a different sequence, and every one is equally valid. We enumerated them: 20,736. Same score. Twenty thousand times the ambiguity. An Eulerian path exists — but it is not unique.
 
 **Transition.** So why does our metric miss this?
 
 ---
 
-## 16. Why Our Metric Fails — 1:30
+## 18. Why Our Metric Fails — 1:30
 
 **Argument.** Saturation: when 4^k ≪ G, distinct k-mers saturate, both terms of D vanish, but uniqueness is gone. A limitation of the metric, not of the experiment.
 
@@ -347,13 +390,13 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 **Script.**
 
-> The mechanism is saturation. Our graph keeps one edge per distinct k-mer. With k = 4 there are only 256 possible words, and lambda has 48,500 positions, so almost every word appears many times and all those copies collapse into one edge. The table shows it: 99.5 percent collapsed at k = 4, 98 at k = 5, 92 at k = 6, and the index is zero, zero, 0.002. Errors cannot hurt either, because every erroneous k-mer already exists in the graph. Why is k = 6 not quite zero? Lambda contains only 4,053 of the 4,096 possible 6-mers; some short motifs are under-used in phages, so the graph is almost, but not exactly, complete. [demo] You can see the same thing in miniature on 210 bases of lambda. At k = 2 all sixteen dinucleotides are present, 92 percent of positions collapse, and D is exactly zero. [k = 4] The toy peaks at k = 4, which is log4 of 210. [k = 10] Then it becomes a clean path. To be clear: this is not a failure of the experiment. The pipeline measured exactly what D defines. [→] The problem is the definition: connected and balanced does not mean uniquely reconstructable.
+> The mechanism is saturation. Our graph keeps one edge per distinct k-mer. With k = 4 there are only 256 possible words, and lambda has 48,500 positions, so almost every word appears many times and all those copies collapse into one edge. The table shows it: 99.5 percent collapsed at k = 4, 98 at k = 5, 92 at k = 6, and the index is zero, zero, 0.002. Errors cannot hurt either, because every erroneous k-mer already exists in the graph. Why is k = 6 not quite zero? Lambda contains only 4,053 of the 4,096 possible 6-mers; some short k-mers are under-used in phages, so the graph is almost, but not exactly, complete. [demo] You can see the same thing in miniature on 210 bases of lambda. At k = 2 all sixteen dinucleotides are present, 92 percent of positions collapse, and D is exactly zero. [k = 4] The toy peaks at k = 4, which is log4 of 210. [k = 10] Then it becomes a clean path. To be clear: this is not a failure of the experiment. The pipeline measured exactly what D defines. [→] The problem is the definition: connected and balanced does not mean uniquely reconstructable.
 
 **Transition.** And the location of that left-side peak can be predicted.
 
 ---
 
-## 17. Why the Peak Occurs Near k = 8 — 1:00
+## 19. Why the Peak Occurs Near k = 8 — 1:00
 
 **Argument.** The transition sits where 4^k ≈ G, i.e. k ≈ log₄ G ≈ 7.8 for lambda.
 
@@ -369,11 +412,32 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 > Imbalance is highest when the graph is about half full — when many nodes get an uneven mix of incoming and outgoing edges. That happens when the number of possible k-mers is about the genome length. Four to the k equals G gives k equals log base 4 of G, which for lambda is 7.8. The measured peak is at k = 8 or 9, and on the previous slides it was at the same place for every coverage, which fits: the position depends on genome length and composition, not on how deeply you sequence. [→] This gives a falsifiable prediction. For a 4.6-megabase E. coli chromosome the transition should move to about k = 11. We have not run that yet; it is future work, at about a hundred times the compute.
 
+**Transition.** But why is the imbalance largest exactly there?
+
+---
+
+## 20. Why the Imbalance Peaks at k ≈ 8 — 1:00
+
+**Argument.** The imbalance peaks where each k-mer appears only about once on average (G/4^k ≈ 1): chance repeats and gaps give nodes uneven in- and out-edges.
+
+**Points to make**
+- Average appearances of a k-mer = G/4^k: ≈ 47 at k = 5, ≈ 0.74 at k = 8, ≈ 0.000003 at k = 17.
+- k = 5: every k-mer present → every node 4 in, 4 out → I = 0.
+- k = 8: some k-mers appear 2–3 times, many never → uneven nodes → I ≈ 6,100.
+- k = 17: every k-mer unique → 1 in, 1 out → I = 2 (just the two ends).
+- Example: node ACAATGG appears twice (positions 188 and 19,367), letters before A and T, after A both times → 2 in-edges, 1 out-edge → off by 1.
+
+**Demo / controls.** → reveals the lambda example.
+
+**Script.**
+
+> The key number is how often a k-mer appears on average: the genome length divided by 4 to the k. At k = 5, every 5-mer appears about 47 times, so every possible k-mer is there and every node has all four edges in and out: balanced. At k = 17, a k-mer appears far less than once: every k-mer is unique, so the graph is a clean path. At k = 8, each k-mer appears about once on average. That means by chance some appear twice or three times and many not at all, and nodes end up with an uneven number of in- and out-edges. [→] Here is a real example from lambda. The node ACAATGG appears twice, at two unrelated places. The letters before are A and T, so two incoming edges. The letter after is A both times, so that outgoing k-mer appears twice but is stored once: one outgoing edge. Two in, one out. Thousands of these chance repeats give an imbalance of about 6,000. And average appearances about one is exactly 4 to the k about G.
+
 **Transition.** Let's put the three verdicts side by side.
 
 ---
 
-## 18. What the Results Actually Tell Us — 1:00
+## 21. What the Results Actually Tell Us — 1:00
 
 **Argument.** Scorecard and the key distinction between existence, uniqueness and correctness.
 
@@ -393,20 +457,23 @@ Bracketed cues such as [→] or [Play] mark when to click. Spoken-script time is
 
 ---
 
-## 19. Conclusion and Future Work — 1:00
+## 22. Conclusion and Future Work — 1:00
 
 **Argument.** Our contribution: quantified, explained degradation — and a concrete limitation of structural metrics.
 
 **Points to make**
-- Four findings.
-- Future work: ambiguity term, repeat/branching analysis, compare with reconstruction accuracy, larger genomes, k-mer filtering.
+- 01 Coverage — confirmed: Lander–Waterman predicts peak and decay.
+- 02 Errors — partial: ≈ 2 per substitution until errors share bubbles, ≈ 2(1−e)^(k−1) per error.
+- 03 k-mer size — partial: low k chance repeats (peak at 4^k ≈ G), high k reads stop overlapping.
+- 04 The metric — limitation: D = 0 ≠ solvable (complete graph at k ≤ 6, 20,736 paths in the k = 2 toy).
+- Future work: ambiguity term, E. coli test (k ≈ 11), compare with reconstruction accuracy, k-mer count filtering.
 - Closing line.
 
 **Demo / controls.** The graph keeps tracing new valid traversals of the same balanced graph. → future work, → closing quote.
 
 **Script.**
 
-> Four findings. Coverage controls connectivity, and a simple Poisson argument predicts both the peak and the exponential decay. Substitution errors create about two units of imbalance each, until their windows start to overlap. The k-mer size has two competing failure modes, split near log4 of the genome length. And structural metrics alone do not describe assembly quality. [→] Next, we want an ambiguity-aware term — for example counting branching nodes, which rises exactly where our index falls to zero — and to compare the index with actual reconstruction accuracy, test the log4 G prediction on E. coli, and try k-mer count filtering to remove errors. [→] The graph on the right is balanced and connected, and it keeps spelling a new genome every few seconds. A graph can be perfectly Eulerian and still fail to uniquely describe the genome. Thank you — we are happy to take questions.
+> Four findings. Coverage controls connectivity, and the Lander–Waterman model predicts both the low-coverage peak and the exponential decay. Each substitution adds about two units of imbalance, until errors land in the same bubble; counting bubbles gives about 2 (1 − e) to the k − 1 per error. The k-mer size has two failure modes: at low k, chance k-mer repeats unbalance the nodes, peaking where 4 to the k is about G; at high k, reads stop overlapping and the graph breaks apart. And our metric has a blind spot: D = 0 does not mean solvable. At k ≤ 6 the graph is complete, connected and balanced, with thousands of valid paths — like the one on the right, which keeps spelling a new sequence. [→] Next, we want an ambiguity-aware term — for example counting branching nodes, which rises exactly where our index falls to zero — and to compare the index with actual reconstruction accuracy, test the log4 G prediction on E. coli, and try k-mer count filtering to remove errors. [→] The graph on the right is balanced and connected, and it keeps spelling a new genome every few seconds. A graph can be perfectly Eulerian and still fail to uniquely describe the genome. Thank you — we are happy to take questions.
 
 **Transition.** Questions.
 

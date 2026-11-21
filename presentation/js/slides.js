@@ -1,4 +1,4 @@
-/* The 19 slides. Every experimental number is read from window.LAMBDA_DATA
+/* The 22 slides. Every experimental number is read from window.LAMBDA_DATA
    (aggregated from the pipeline's CSVs) or quoted from report.html. */
 (function () {
   "use strict";
@@ -612,7 +612,7 @@
       const ann = [
         { type: "rect", x0: 3.7, x1: 6.5, color: "#7d8aa3", opacity: 0.12, label: "?", textColor: "#b7c3d6", cls: "pulse" },
       ];
-      if (step >= 1) ann.push({ type: "rect", x0: 6.5, x1: 11.8, color: COL.purple, opacity: 0.14, label: "motif collisions", textColor: COL.purple });
+      if (step >= 1) ann.push({ type: "rect", x0: 6.5, x1: 11.8, color: COL.purple, opacity: 0.14, label: "k-mer repeats", textColor: COL.purple });
       if (step >= 2) ann.push({ type: "rect", x0: 11.8, x1: 36, color: COL.teal, opacity: 0.1, label: "distinguishable", textColor: COL.teal });
       if (step >= 3) ann.push({ type: "rect", x0: 36, x1: 104, color: COL.orange, opacity: 0.1, label: "missing k-mers + errors", textColor: COL.orange });
       kChart(el0.querySelector('[data-chart="k10"]'), "kmer_sweep", { ann, margin: { t: 50 }, legendPos: { x: 430, y: 110 } });
@@ -632,6 +632,43 @@
       </div>`,
       enter(el) { el0 = el; bindCharts(el, { k10: () => draw(Deck.step) }); },
       onStep(s) { if (el0 && el0.classList.contains("active")) draw(s); },
+    });
+  })();
+
+  // ======================================================== 10b. What drives each zone
+  (function () {
+    const r = (e, k) => row("kmer_sweep", e, k);
+    const n = (v) => Math.round(v).toLocaleString("en-US");
+    const stat = (k, v, color) => `<div class="stat" style="padding:10px 16px"><div class="k">${k}</div><div class="v ${color}" style="font-size:28px">${v}</div></div>`;
+    const zone = (step, color, range, title, body, stats, at) =>
+      `<div class="panel stack" data-step="${step}" style="gap:14px;padding:22px 26px">
+        <div class="mono ${color}" style="font-size:18px;letter-spacing:.08em;text-transform:uppercase">${range}</div>
+        <h3 class="${color}" style="font-size:30px">${title}</h3>
+        <div style="font-size:23px;line-height:1.45">${body}</div>
+        <div style="margin-top:auto"><div class="small" style="font-size:18px;margin-bottom:8px">Measured at ${at}, <b>error-free reads (e = 0)</b>, c = 30:</div>
+        <div class="stats tight" style="grid-template-columns:1fr 1fr">${stats}</div></div></div>`;
+    Deck.add({
+      title: "What Drives Each Zone", duration: 90, steps: 2,
+      html: `${head("Explanation · three regimes of k", "What drives each zone", "Low k: k-mers repeat. Middle: unique and overlapping. High k: reads stop overlapping.")}
+      <div class="body cols-3" style="gap:28px">
+        ${zone(0, "c-purple", "k ≈ 7–9 · local peak", "k-mer repeats → imbalance",
+          `k is low, so there are few possible k-mers (4<sup>k</sup> ≈ G): the same k-mer turns up at <b>unrelated places by accident</b>. The graph merges them into one node, whose in- and out-edges no longer match.
+           <div class="mono" style="font-size:20px;margin:12px 0 4px;color:var(--ink-2)">…<span class="c-orange">A</span>GGCGTAC<span class="c-cyan">T</span>…<br>…<span class="c-orange">C</span>GGCGTAC<span class="c-cyan">T</span>…</div>
+           <span class="small">2 different k-mers in, 1 shared k-mer out → node off by 1. At k = 8: G / 4<sup>8</sup> ≈ ${(G / Math.pow(4, 8)).toFixed(2)} copies per 8-mer.</span>`,
+          stat("collapsed", pct(r(0, 8).repeat_collapse_frac), "c-purple") + stat("imbalance I", n(r(0, 8).imbalance), "c-purple") +
+          stat("components C", n(r(0, 8).components), "c-cyan") + stat("D", r(0, 8).degradation.toFixed(3), "c-purple"), "k = 8")}
+        ${zone(1, "c-cyan", "k ≈ 13–31 · valley", "Ideal: unique and overlapping",
+          `k-mers are long enough to be <b>unique</b> (4<sup>k</sup> ≫ G), and short enough that every read still holds many of them (L − k + 1 ≥ 70), so neighbouring reads always share one. The graph is a single balanced path.
+           <div class="small" style="margin-top:10px">Errors still add bubbles here: D ≈ 0.01–0.02 (slides 10–12).</div>`,
+          stat("collapsed", pct(r(0, 31).repeat_collapse_frac), "c-cyan") + stat("imbalance I", n(r(0, 31).imbalance), "c-cyan") +
+          stat("components C", n(r(0, 31).components), "c-cyan") + stat("D", r(0, 31).degradation.toFixed(3), "c-cyan"), "k = 31")}
+        ${zone(2, "c-orange", "k ≳ 50 · right wall", "Reads stop overlapping → components",
+          `Two reads connect only if they overlap by ≥ k − 1 bases. With k high, a read holds only L − k + 1 k-mers (<b>6 at k = 95</b>), so many neighbouring reads share none: gaps open and the graph <b>breaks into many components</b>.
+           <div class="small" style="margin-top:10px">Errors make it worse: a k-mer is error-free only with probability (1 − e)<sup>k</sup>. With e = 0.005, C rises from ${n(r(0, 95).components)} to ≈ ${n(r(0.005, 95).components)}.</div>`,
+          stat("missing k-mers", pct(r(0, 95).missing_kmer_frac), "c-orange") + stat("imbalance I", n(r(0, 95).imbalance), "c-orange") +
+          stat("components C", n(r(0, 95).components), "c-red") + stat("D", r(0, 95).degradation.toFixed(2), "c-orange"), "k = 95")}
+      </div>
+      <div style="font-size:24px;color:var(--ink-2);text-align:center;margin-top:20px">Left peak: the <span class="c-purple">imbalance</span> term of D. Right wall: the <span class="c-orange">component</span> term. k ≤ 6: coming up.</div>`,
     });
   })();
 
@@ -682,12 +719,12 @@
             <div class="ctrl-row"><span>k</span><input type="range" min="4" max="95" value="95" data-kw style="width:420px"><span class="readout" data-wk></span></div>
             <div data-win></div>
             <div class="stats" style="grid-template-columns:repeat(2,1fr)">
-              <div class="stat"><div class="k">windows / read · L−k+1</div><div class="v c-purple" data-ww></div></div>
+              <div class="stat"><div class="k">k-mers per read · L−k+1</div><div class="v c-purple" data-ww></div></div>
               <div class="stat"><div class="k">k-mer coverage at c = 10</div><div class="v" data-wc></div></div>
-              <div class="stat"><div class="k">unsampled ≈ e^(−c(L−k+1)/L)</div><div class="v c-red" data-wm></div></div>
+              <div class="stat"><div class="k">chance a k-mer is not read at all ≈ e^(−c(L−k+1)/L)</div><div class="v c-red" data-wm></div></div>
               <div class="stat"><div class="k">error-free k-mer (1−e)^k, e = 0.5%</div><div class="v c-orange" data-we></div></div>
             </div>
-            <div class="small">Measured at k = 95, c = 10: <b class="c-red">${pct(row("kmer_sweep_c10", 0, 95).missing_kmer_frac)}</b> of lambda's k-mers never sampled.</div>
+            <div class="small">Measured at k = 95, c = 10: <b class="c-red">${pct(row("kmer_sweep_c10", 0, 95).missing_kmer_frac)}</b> of lambda's k-mers never read.</div>
           </div>
         </div>
       </div>`,
@@ -703,10 +740,10 @@
 
   // ======================================================== 12. The surprise
   (function () {
-    let el0, demo, hv;
+    let hv;
     const r4 = row("kmer_sweep_c10", 0.001, 4);
     Deck.add({
-      title: "The Surprise: Zero Degradation", duration: 90, steps: 4,
+      title: "The Surprise: Zero Degradation", duration: 60, steps: 3,
       html: `<div data-layerA style="display:flex;flex-direction:column;height:100%;transition:opacity .4s">
         ${head("What surprised us · phage lambda, k = 4", '<span class="c-purple glow-purple">99.5% collapsed.</span> <span class="c-cyan">Zero degradation.</span>', "")}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;flex:1;min-height:0">
@@ -716,22 +753,20 @@
               <div class="stat" data-step="1"><div class="k">distinct edges observed</div><div class="v">${r4.n_edges}</div></div>
               <div class="stat" data-step="1"><div class="k">components C</div><div class="v c-cyan">${r4.components}</div></div>
               <div class="stat" data-step="1"><div class="k">imbalance I</div><div class="v c-cyan">${r4.imbalance}</div></div>
-              <div class="stat" data-step="1" style="grid-column:1/-1;border-color:#5a3d8f"><div class="k">genome k-mer positions collapsed</div><div class="v c-purple" style="font-size:54px">${pct(r4.repeat_collapse_frac)}</div></div>
+              <div class="stat" data-step="1" style="grid-column:1/-1;border-color:#5a3d8f"><div class="k">genome k-mer positions collapsed</div><div class="v c-purple" style="font-size:54px">${pct(r4.repeat_collapse_frac)}</div>
+                <div style="font-size:21px;line-height:1.4;color:var(--ink-2);margin-top:6px">= 1 − <span class="c-purple">distinct 4-mers</span> / <span class="c-purple">genome positions</span> = 1 − 256 / ${(G - 3).toLocaleString("en-US")}.<br>
+                <span class="muted">Each distinct 4-mer is one edge, so ${(G - 3 - 256).toLocaleString("en-US")} positions are copies folded onto the same 256 edges: where and how often each occurred is lost.</span></div></div>
             </div>
-            <div data-step="2" class="pop" style="text-align:center;padding:10px 0"><div class="small mono">normalized degradation index</div><div class="mono c-cyan glow-cyan" style="font-size:150px;font-weight:700;line-height:1">D = ${r4.degradation === 0 ? "0" : r4.degradation}</div><div class="small">every coverage 10–30, every error rate</div></div>
+            <div data-step="2" class="pop" style="text-align:center;padding:10px 0"><div class="small mono">normalized degradation index</div><div class="mono c-cyan glow-cyan" style="font-size:150px;font-weight:700;line-height:1">D = ${r4.degradation === 0 ? "0" : r4.degradation}</div><div class="small">every coverage 10–30, every error rate</div>
+              <div style="font-size:24px;margin-top:12px;color:var(--ink-2)">D = 0 means an Eulerian path <b class="c-cyan">exists</b>, not that it is <b class="c-purple">unique</b>: here there are many valid paths.</div></div>
           </div>
           <div class="stack" data-step="3"><div data-hair style="flex:1;min-height:0"></div>
             <div style="font-size:26px;text-align:center">The <b class="c-purple">complete</b> De Bruijn graph: 64 nodes, each with <b>4 in</b> and <b>4 out</b>.<br><span class="muted">Connected. Balanced. Yet it cannot tell you the genome.</span></div></div>
         </div>
-        <div class="slide-foot" style="bottom:30px">c = 10, e = 0.001, mean of 3 replicates (pipeline CSV) · Interaction D on the next build →</div>
+        <div class="slide-foot" style="bottom:30px">c = 10, e = 0.001, mean of 3 replicates (pipeline CSV) · Interaction D on the next slide →</div>
       </div>
-      <div data-layerB style="position:absolute;inset:72px 96px 88px;display:none;flex-direction:column">
-        ${head("Interaction D · exact small graphs", "Same score, very different ambiguity", '<span class="tag sim">◆ Illustration · not the genome</span>')}
-        <div data-demo style="flex:1;min-height:0"></div>
-        <div style="font-size:24px;text-align:center;margin-top:14px" class="muted">Every traversal uses each distinct 2-mer exactly once — all are equally valid reconstructions. Count by exhaustive enumeration (BEST theorem: (4!)⁴ / 4² = 20,736).</div>
-      </div>`,
+      `,
       enter(el) {
-        el0 = el;
         // hairball: complete graph on 64 3-mers, edges = all 256 4-mers
         const all = []; const B = "ACGT";
         for (const a of B) for (const b of B) for (const c of B) for (const d of B) all.push(a + b + c + d);
@@ -739,16 +774,21 @@
         const pos = new Map(); [...g.nodes.keys()].sort().forEach((id, i) => { const t = (2 * Math.PI * i) / 64 - Math.PI / 2; pos.set(id, { x: 400 + 330 * Math.cos(t), y: 360 + 330 * Math.sin(t) }); });
         hv = new GraphView(el.querySelector("[data-hair]"), { w: 800, h: 720, r: 7, labels: false, arrows: false, edgeWidth: 1, cx: 400, cy: 360 });
         hv.update(g, pos, { node: () => ({ stroke: COL.purple, fill: "#2a1846", r: 7 }), edge: () => ({ color: COL.purple, width: 1, opacity: 0.32 }) });
-        this.onStep(Deck.step);
       },
-      onStep(s) {
-        if (!el0) return;
-        const A = el0.querySelector("[data-layerA]"), Bl = el0.querySelector("[data-layerB]");
-        A.style.display = s >= 4 ? "none" : "flex";
-        Bl.style.display = s >= 4 ? "flex" : "none";
-        if (s >= 4 && !demo) { demo = Viz.ParadoxDemo(el0.querySelector("[data-demo]")); }
-      },
-      leave() { if (demo) { demo.destroy(); demo = null; } hv && hv.stop(); },
+      leave() { hv && hv.stop(); },
+    });
+  })();
+
+  // ======================================================== 12b. Interaction D: same score, different ambiguity
+  (function () {
+    let demo;
+    Deck.add({
+      title: "An Eulerian Path Exists, but It Is Not Unique", duration: 45, steps: 0,
+      html: `${head("Interaction D · exact small graphs · same score, very different ambiguity", 'An Eulerian path <span class="c-cyan">exists</span>, but it is <span class="c-purple glow-purple">not unique</span>', '<span class="tag sim">◆ Illustration · not the genome</span>')}
+        <div data-demo style="flex:1;min-height:0"></div>
+        <div style="font-size:24px;text-align:center;margin-top:14px" class="muted">Every traversal uses each distinct 2-mer exactly once — all are equally valid reconstructions. Count by exhaustive enumeration (BEST theorem: (4!)⁴ / 4² = 20,736).</div>`,
+      enter(el) { demo = Viz.ParadoxDemo(el.querySelector("[data-demo]")); },
+      leave() { if (demo) { demo.destroy(); demo = null; } },
       toggle() { demo && demo.play(); }, reset() { demo && demo.reset(); },
     });
   })();
@@ -767,7 +807,7 @@
           </table><div class="small" style="margin-top:6px">Lambda, c = 10, e = 0.001 · means of 3 replicates (report shows one replicate for |E|, C, I)</div></div>
           <div class="panel" style="padding:16px 22px;font-size:24px;line-height:1.5">
             <span class="math mid">4<sup><i>k</i></sup> ≪ <i>G</i></span> ⇒ almost every possible k-mer occurs ⇒ graph ≈ complete ⇒ <span class="c-cyan">C = 1</span>, <span class="c-cyan">I = 0</span> ⇒ <span class="c-cyan">D = 0</span>.<br>
-            <span class="muted">Errors add nothing: every erroneous k-mer already exists. At k = 6, 43 of 4,096 6-mers never occur in lambda (under-used motifs) → small I.</span></div>
+            <span class="muted">Errors add nothing: every erroneous k-mer already exists. At k = 6, 43 of 4,096 6-mers never occur in lambda (under-used k-mers) → small I.</span></div>
         </div>
         <div class="panel stack" style="padding:16px 22px"><span class="tag sim panel-tag">◆ Simulation · Interaction C</span><h3 style="font-size:23px">Explore k on 210 bp of lambda</h3><div data-demo style="flex:1;min-height:0"></div></div>
       </div>
@@ -818,6 +858,39 @@
     });
   })();
 
+  // ======================================================== 14b. Why the imbalance peaks there
+  (function () {
+    const avg = (k) => G / Math.pow(4, k);
+    const I = (k) => Math.round(row("kmer_sweep", 0, k).imbalance).toLocaleString("en-US");
+    const zone = (k, color, avgTxt, body, result, hl) =>
+      `<div class="panel stack" style="gap:10px;padding:20px 24px;${hl ? "border-color:#5a3d8f;background:linear-gradient(180deg,#1c1535,#0c1424)" : ""}">
+        <div class="mono ${color}" style="font-size:20px;letter-spacing:.06em">k = ${k}</div>
+        <div style="font-size:28px;font-weight:650">each ${k}-mer appears <span class="${color}">${avgTxt}</span> on average</div>
+        <div style="font-size:22px;line-height:1.45;color:var(--ink-2)">${body}</div>
+        <div class="mono ${color}" style="font-size:24px;margin-top:auto">${result}</div></div>`;
+    Deck.add({
+      title: "Why the Imbalance Peaks at k ≈ 8", duration: 60, steps: 1,
+      html: `${head("Explanation · how often does a k-mer appear?", "Why the imbalance peaks at k ≈ 8", "At k ≈ 8 each k-mer appears only about <b>once</b> on average: by chance some appear twice, many never.")}
+      <div class="body cols-3" style="gap:24px;flex:none">
+        ${zone(5, "c-cyan", `≈ ${Math.round(avg(5))}×`, "Every possible k-mer is there, so every node gets all 4 in-edges and all 4 out-edges.", `balanced · I = ${I(5)}`)}
+        ${zone(8, "c-purple", `≈ ${avg(8).toFixed(2)}×`, "By chance some k-mers appear 2–3 times and many never, so nodes get a <b>random, uneven</b> number of in- and out-edges.", `unbalanced · I = ${I(8)}`, true)}
+        ${zone(17, "c-cyan", `≈ ${avg(17).toExponential(0).replace("e-", " × 10⁻").replace(/(\d+)$/, (d) => d.split("").map((c) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[c]).join(""))}×`, "Every k-mer is unique, so every node has 1 in-edge and 1 out-edge: a clean path.", `balanced · I = ${I(17)} (just the 2 ends)`)}
+      </div>
+      <div class="panel" data-step="1" style="margin-top:22px;padding:18px 28px;flex:none;display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:center">
+        <div>
+          <h3 style="margin-bottom:10px">Example from lambda, k = 8: node <span class="c-purple mono">ACAATGG</span> appears twice by chance</h3>
+          <div class="mono" style="font-size:26px;line-height:1.6">… <span class="c-cyan">A</span> <span class="c-purple">ACAATGG</span> <span class="c-orange">A</span> … <span class="small">(position 188)</span><br>… <span class="c-cyan">T</span> <span class="c-purple">ACAATGG</span> <span class="c-orange">A</span> … <span class="small">(position 19,367)</span></div>
+        </div>
+        <div style="font-size:23px;line-height:1.55">
+          in-edges: <span class="mono c-cyan">AACAATGG</span>, <span class="mono c-cyan">TACAATGG</span> → <b class="c-cyan">2</b><br>
+          out-edge: <span class="mono c-orange">ACAATGGA</span> appears twice, stored once → <b class="c-orange">1</b><br>
+          <b>2 in ≠ 1 out → off by 1.</b> <span class="muted">Thousands of such chance repeats → I ≈ ${I(8)}.</span>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:18px"><span class="math mid">average appearances = <i>G</i> / 4<sup><i>k</i></sup> ≈ 1 &nbsp;⇔&nbsp; 4<sup><i>k</i></sup> ≈ <i>G</i> &nbsp;⇔&nbsp; <i>k</i> ≈ log<sub>4</sub> <i>G</i> ≈ 7.8</span></div>`,
+    });
+  })();
+
   // ======================================================== 15. What results tell us
   (function () {
     let el0;
@@ -858,22 +931,30 @@
     let v, seedN = 0;
     Deck.add({
       title: "Conclusion and Future Work", duration: 60, steps: 2,
-      html: `${head("Conclusion", "What we contribute", "")}
-      <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:40px;flex:1;min-height:0">
-        <div class="stack" style="gap:18px">
-          ${["<b class='c-cyan'>Coverage</b> controls connectivity — Lander–Waterman predicts the peak and the decay.",
-            "<b class='c-orange'>Substitutions</b> create imbalance ≈ 2 each, until their k-windows overlap.",
-            "<b class='c-purple'>k-mer size</b> has two competing failure modes, split near log₄ G.",
-            "<b>Structural metrics alone</b> do not describe assembly quality."].map((t, i) => `<div style="display:flex;gap:18px;font-size:29px;line-height:1.35"><span class="mono" style="color:#4b5975">0${i + 1}</span><span>${t}</span></div>`).join("")}
-          <div class="panel" data-step="1" style="margin-top:8px"><h3 style="font-size:24px">Future work</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 26px;font-size:22px;color:var(--ink-2)">
-              <span>• ambiguity-aware term (branching nodes)</span><span>• repeat & branching structure analysis</span>
-              <span>• compare D with reconstruction accuracy</span><span>• larger genome: E. coli (k-peak → ≈ 11)</span>
-              <span>• k-mer count filtering / error correction</span></div></div>
+      html: `${head("Conclusion", "What we found", "")}
+      <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:40px;flex:1;min-height:0">
+        <div class="stack" style="gap:12px">
+          ${[["c-cyan", COL.cyan, "Coverage", "ok", "CONFIRMED", "Controls connectivity. Lander–Waterman predicts the low-coverage peak and the exponential decay."],
+            ["c-orange", COL.orange, "Errors", "part", "PARTIAL", "Each substitution adds ≈ 2 imbalance, until errors share a bubble: ≈ 2(1 − e)<sup>k−1</sup> per error."],
+            ["c-purple", COL.purple, "k-mer size", "part", "PARTIAL", "Low k: chance k-mer repeats unbalance nodes (peak at 4<sup>k</sup> ≈ G, k ≈ 8). High k: reads stop overlapping and the graph breaks apart."],
+            ["", "#b7c3d6", "The metric", "part", "LIMITATION", "D = 0 ≠ solvable: at k ≤ 6 the graph is complete, connected and balanced, with thousands of valid paths."]]
+            .map(([cls, col, name, v, vt, t], i) => `<div style="display:grid;grid-template-columns:46px 1fr;gap:14px;align-items:start;padding:12px 18px;border-left:4px solid ${col};background:#0c1424;border-radius:10px">
+              <span class="mono" style="color:#4b5975;font-size:22px;padding-top:3px">0${i + 1}</span>
+              <div><div style="display:flex;align-items:center;gap:14px;margin-bottom:4px"><b class="${cls}" style="font-size:27px">${name}</b><span class="verdict ${v}" style="font-size:15px;padding:3px 10px">${vt}</span></div>
+              <div style="font-size:23px;line-height:1.4;color:var(--ink-2)">${t}</div></div></div>`).join("")}
+          <div class="panel" data-step="1" style="padding:14px 22px"><h3 style="font-size:23px;margin-bottom:8px">Future work</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:21px;color:var(--ink-2)">
+              <span>• add an ambiguity term (branching nodes)</span><span>• test the peak on E. coli (k ≈ 11)</span>
+              <span>• compare D with reconstruction accuracy</span><span>• k-mer count filtering (min_count ≥ 2)</span></div></div>
         </div>
-        <div class="stack"><div data-g style="flex:1;min-height:0"></div><div class="mono c-purple" data-sp style="font-size:24px;text-align:center;min-height:34px"></div></div>
+        <div class="stack" style="gap:6px">
+          <div style="text-align:center;font-size:22px;color:var(--ink-2)">Complete k = 2 graph · <span class="c-cyan">C = 1, I = 0, D = 0</span></div>
+          <div data-g style="flex:1;min-height:0"></div>
+          <div style="text-align:center;font-size:20px" class="muted">one of 20,736 equally valid paths spells:</div>
+          <div class="mono c-purple" data-sp style="font-size:26px;text-align:center;min-height:36px"></div>
+        </div>
       </div>
-      <div data-step="2" style="text-align:center;font-size:40px;font-weight:600;margin-top:12px">“A graph can be perfectly Eulerian and still fail to uniquely describe the genome.”</div>`,
+      <div data-step="2" style="text-align:center;font-size:38px;font-weight:600;margin-top:14px">“A graph can be perfectly Eulerian and still fail to uniquely describe the genome.”</div>`,
       enter(el) {
         const all2 = []; for (const a of "ACGT") for (const b of "ACGT") all2.push(a + b);
         const g = Toy.build(all2);

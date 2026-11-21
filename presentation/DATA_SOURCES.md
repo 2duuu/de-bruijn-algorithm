@@ -54,8 +54,8 @@ Every measured visual in the deck is therefore labelled *phage lambda NC_001416.
 - Isolated-error line I = 2 + 2·N·L·e with N = 14,551 reads (the CSV's `n_reads`): slides 9–10.
 - P = 1 − (1−e)^(2(k−1)): slide 12.
 - Bubble-counting model E[I] ≈ 2 + 2·N·L·e(1−e)^(k−1), i.e. ≈ 2(1−e)^(k−1) per error: slide 12. Approximate: it ignores read starts (exact within-read count is N·[1 − (1−e)^(k−1) + (L−k+1)·e·(1−e)^(k−1)]) and identical or touching bubbles from different reads.
-- Windows per read L−k+1, unsampled fraction ≈ e^(−c(L−k+1)/L), and error-free probability (1−e)^k: slide 14.
-- 4ᵏ vs G and k ≈ log₄ G: slide 17. The E. coli value (≈ 11) is a prediction for future work.
+- Windows per read L−k+1, unsampled fraction ≈ e^(−c(L−k+1)/L), and error-free probability (1−e)^k: slides 14–15.
+- 4ᵏ vs G and k ≈ log₄ G: slide 19. The E. coli value (≈ 11) is a prediction for future work.
 
 ## Metric motivation (slide 6)
 
@@ -65,5 +65,5 @@ Edmonds & Johnson (1973), *Matching, Euler tours and the Chinese postman*, Math.
 
 - Interaction A (slides 7–8): seeded reads on the first 210 bp of lambda, L = 30, k = 11.
 - Interaction B (slide 11): an 18 bp lambda window (positions 113–130, GGAAACGACAGGTGCTGA) whose 3-mers are all distinct, k = 4; the read is its middle 12 bp. The demo computes the imbalance for real; the presets give +2 (bubble), +2 (tip), +2 (two errors 2 bp apart) and +4 (two errors far apart).
-- Interaction C (slide 16): the first 210 bp of lambda, k = 2 … 20. Either all k-mers are used, or seeded reads at c = 4, L = 25.
-- Interaction D (slide 15): a simple 8-node cycle versus the complete k = 2 graph on all 16 dinucleotides. Both have C = 1, I = 0 and D = 0. The Eulerian circuits are counted by exhaustive enumeration in the browser: 1 versus 20,736, which matches the BEST theorem value (4!)⁴/4².
+- Interaction C (slide 18): the first 210 bp of lambda, k = 2 … 20. Either all k-mers are used, or seeded reads at c = 4, L = 25.
+- Interaction D (slide 17): a simple 8-node cycle versus the complete k = 2 graph on all 16 dinucleotides. Both have C = 1, I = 0 and D = 0. The Eulerian circuits are counted by exhaustive enumeration in the browser: 1 versus 20,736, which matches the BEST theorem value (4!)⁴/4².

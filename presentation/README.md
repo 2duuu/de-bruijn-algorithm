@@ -1,6 +1,6 @@
 # When De Bruijn Graphs Break — interactive presentation
 
-About 23-minute, 19-slide HTML presentation of our research project *Analyzing the Degradation of De Bruijn Graphs in Genome Assembly* (Tudor Pisica & Andrei Stan, Monday 23 November 2026).
+About 25-minute, 22-slide HTML presentation of our research project *Analyzing the Degradation of De Bruijn Graphs in Genome Assembly* (Tudor Pisica & Andrei Stan, Monday 23 November 2026).
 
 Plain HTML/CSS/JS. You don't need to build or install anything, and it works without internet access.
 
@@ -52,14 +52,17 @@ Moving the mouse shows a control bar (prev/next, play, reset, timer, notes, pres
 | 11 | Why sublinear | 1:30 | **Interaction B** (error injection) |
 | 12 | Counting bubbles, not errors | 1:00 | E[#bubbles] = NL·e(1−e)^(k−1) derivation, P slider, predicted vs measured table |
 | 13 | k-mer: results | 1:30 | measured chart with staged regions |
-| 14 | Coverage shifts the threshold | 1:30 | per-coverage measured sweeps, windows-per-read slider |
-| 15 | The surprise: zero degradation | 1:30 | k = 4 reveal, then **Interaction D** (paradox) |
-| 16 | Why our metric fails | 1:30 | measured table + **Interaction C** (k explorer) |
-| 17 | Why the peak is near k = 8 | 1:00 | 4ᵏ vs G, measured D near the peak |
-| 18 | What the results tell us | 1:00 | verdicts with measured sparklines |
-| 19 | Conclusion & future work | 1:00 | balanced graph tracing new genomes |
+| 14 | What drives each zone | 1:30 | k-mer repeats / ideal / reads stop overlapping, measured stats per zone |
+| 15 | Coverage shifts the threshold | 1:30 | per-coverage measured sweeps, windows-per-read slider |
+| 16 | The surprise: zero degradation | 1:00 | k = 4 reveal, complete graph |
+| 17 | An Eulerian path exists, but it is not unique | 0:45 | **Interaction D** (paradox) |
+| 18 | Why our metric fails | 1:30 | measured table + **Interaction C** (k explorer) |
+| 19 | Why the peak is near k = 8 | 1:00 | 4ᵏ vs G, measured D near the peak |
+| 20 | Why the imbalance peaks at k ≈ 8 | 1:00 | average k-mer appearances G/4ᵏ at k = 5, 8, 17; lambda example node ACAATGG |
+| 21 | What the results tell us | 1:00 | verdicts with measured sparklines |
+| 22 | Conclusion & future work | 1:00 | balanced graph tracing new genomes |
 
-The full spoken script is in [PRESENTER_SCRIPT.md](PRESENTER_SCRIPT.md) (about 2,835 words, ≈ 20 min spoken at 140 wpm, plus about 3 min for demos and pauses). The same notes appear in the `N` overlay and the `P` presenter window.
+The full spoken script is in [PRESENTER_SCRIPT.md](PRESENTER_SCRIPT.md) (about 3,248 words, ≈ 23 min spoken at 140 wpm, plus about 3 min for demos and pauses). The same notes appear in the `N` overlay and the `P` presenter window.
 
 ## Measured vs. illustrative content
 
@@ -77,7 +80,7 @@ presentation/
 ├── css/deck.css            dark theme, 1920×1080 stage
 ├── js/
 │   ├── deck.js             navigation, steps, notes, presenter window, timer, fullscreen
-│   ├── slides.js           the 19 slides
+│   ├── slides.js           the 22 slides
 │   ├── notes.js            speaker notes (single source of truth)
 │   ├── charts.js           small SVG chart helper (log axes, sd bands, tooltips)
 │   ├── viz.js              animated graph view + Interactions A–D
