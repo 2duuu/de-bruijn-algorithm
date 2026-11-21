@@ -349,12 +349,12 @@
       const p = ser("coverage_sweep", k, "components"); const pk = p.reduce((a, b) => (b.y > a.y ? b : a));
       return { k, cp, model: (cp * G / L) * Math.exp(-1), obs: pk.y, obsAt: pk.x };
     });
-    const STAGE = [null, { c: 0.5, x0: 0, x1: 1, label: "few isolated reads" }, { c: 1.5, x0: 1, x1: 2.5, label: "maximum islands" }, { c: 8, x0: 4, x1: 8.4, label: "islands merge" }];
+    const STAGE = [null, { c: 0.5, x0: 0, x1: 1, label: "few isolated reads" }, { c: 1.5, x0: 1, x1: 2.5, label: "maximum islands" }, { c: 8, x0: 4, x1: 31, label: "islands merge" }];
     function draw(step) {
       const st = STAGE[step];
       const ann = [...peaks.map((p, i) => ({ type: "vline", x: p.cp, color: [COL.blue, COL.cyan, COL.yellow][i], dash: "2 6", width: 2 }))];
       if (st) ann.unshift({ type: "rect", x0: st.x0, x1: st.x1, color: COL.purple, opacity: 0.14, label: st.label, textColor: COL.purple });
-      covChart(el0.querySelector('[data-chart="cov7"]'), ann, true, 8.4);
+      covChart(el0.querySelector('[data-chart="cov7"]'), ann, true, 31);
       if (st && demo) demo.set(st.c);
     }
     Deck.add({
