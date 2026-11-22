@@ -167,9 +167,9 @@ button{background:#17233b;color:#fff;border:1px solid #2c3f62;border-radius:8px;
     // range sliders should not steal arrow keys from navigation focus forever
     document.addEventListener("mouseup", () => { if (document.activeElement && document.activeElement.type === "range") setTimeout(() => document.activeElement.blur(), 0); });
     $("#b-prev").onclick = prev; $("#b-next").onclick = next;
-    $("#b-play").onclick = togglePlay; $("#b-reset").onclick = reset;
-    $("#b-fs").onclick = fullscreen; $("#b-notes").onclick = () => document.body.classList.toggle("show-notes");
-    $("#b-pres").onclick = openPresenter; $("#b-help").onclick = () => document.body.classList.toggle("show-help");
+    // play/reset, notes and presenter stay on the keyboard (K, R, N, P)
+    $("#b-fs").onclick = fullscreen;
+    $("#b-help").onclick = () => document.body.classList.toggle("show-help");
     $("#help").onclick = () => document.body.classList.remove("show-help");
     let hideT;
     document.addEventListener("mousemove", () => {
