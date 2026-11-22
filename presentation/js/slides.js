@@ -645,30 +645,27 @@
         <div class="mono ${color}" style="font-size:18px;letter-spacing:.08em;text-transform:uppercase">${range}</div>
         <h3 class="${color}" style="font-size:30px">${title}</h3>
         <div style="font-size:23px;line-height:1.45">${body}</div>
-        <div style="margin-top:auto"><div class="small" style="font-size:18px;margin-bottom:8px">Measured at ${at}, <b>error-free reads (e = 0)</b>, c = 30:</div>
+        <div style="margin-top:auto"><div class="small" style="font-size:18px;margin-bottom:8px">${at} · e = 0 · c = 30</div>
         <div class="stats tight" style="grid-template-columns:1fr 1fr">${stats}</div></div></div>`;
     Deck.add({
       title: "What Drives Each Zone", duration: 90, steps: 2,
       html: `${head("Explanation · three regimes of k", "What drives each zone", "Low k: k-mers repeat. Middle: unique and overlapping. High k: reads stop overlapping.")}
       <div class="body cols-3" style="gap:28px">
         ${zone(0, "c-purple", "k ≈ 7–9 · local peak", "k-mer repeats → imbalance",
-          `k is low, so there are few possible k-mers (4<sup>k</sup> ≈ G): the same k-mer turns up at <b>unrelated places by accident</b>. The graph merges them into one node, whose in- and out-edges no longer match.
-           <div class="mono" style="font-size:20px;margin:12px 0 4px;color:var(--ink-2)">…<span class="c-orange">A</span>GGCGTAC<span class="c-cyan">T</span>…<br>…<span class="c-orange">C</span>GGCGTAC<span class="c-cyan">T</span>…</div>
-           <span class="small">2 different k-mers in, 1 shared k-mer out → node off by 1. At k = 8: G / 4<sup>8</sup> ≈ ${(G / Math.pow(4, 8)).toFixed(2)} copies per 8-mer.</span>`,
+          `Few possible k-mers (4<sup>k</sup> ≈ G): the same k-mer appears at <b>unrelated places by chance</b> and merges into one node.
+           <div class="mono" style="font-size:20px;margin:12px 0 4px;color:var(--ink-2)">…<span class="c-orange">A</span>GGCGTAC<span class="c-cyan">T</span>…<br>…<span class="c-orange">C</span>GGCGTAC<span class="c-cyan">T</span>…</div>`,
           stat("collapsed", pct(r(0, 8).repeat_collapse_frac), "c-purple") + stat("imbalance I", n(r(0, 8).imbalance), "c-purple") +
           stat("components C", n(r(0, 8).components), "c-cyan") + stat("D", r(0, 8).degradation.toFixed(3), "c-purple"), "k = 8")}
         ${zone(1, "c-cyan", "k ≈ 13–31 · valley", "Ideal: unique and overlapping",
-          `k-mers are long enough to be <b>unique</b> (4<sup>k</sup> ≫ G), and short enough that every read still holds many of them (L − k + 1 ≥ 70), so neighbouring reads always share one. The graph is a single balanced path.
-           <div class="small" style="margin-top:10px">Errors still add bubbles here: D ≈ 0.01–0.02 (slides 10–12).</div>`,
+          `k-mers are <b>unique</b> (4<sup>k</sup> ≫ G), and each read still holds ≥ 70 of them, so neighbouring reads overlap → <b>one balanced path</b>.`,
           stat("collapsed", pct(r(0, 31).repeat_collapse_frac), "c-cyan") + stat("imbalance I", n(r(0, 31).imbalance), "c-cyan") +
           stat("components C", n(r(0, 31).components), "c-cyan") + stat("D", r(0, 31).degradation.toFixed(3), "c-cyan"), "k = 31")}
         ${zone(2, "c-orange", "k ≳ 50 · right wall", "Reads stop overlapping → components",
-          `Two reads connect only if they overlap by ≥ k − 1 bases. With k high, a read holds only L − k + 1 k-mers (<b>6 at k = 95</b>), so many neighbouring reads share none: gaps open and the graph <b>breaks into many components</b>.
-           <div class="small" style="margin-top:10px">Errors make it worse: a k-mer is error-free only with probability (1 − e)<sup>k</sup>. With e = 0.005, C rises from ${n(r(0, 95).components)} to ≈ ${n(r(0.005, 95).components)}.</div>`,
+          `Reads must overlap by ≥ k − 1 bases. At k = 95 a read holds only <b>6 k-mers</b>, so gaps open and the graph <b>breaks apart</b>.`,
           stat("missing k-mers", pct(r(0, 95).missing_kmer_frac), "c-orange") + stat("imbalance I", n(r(0, 95).imbalance), "c-orange") +
           stat("components C", n(r(0, 95).components), "c-red") + stat("D", r(0, 95).degradation.toFixed(2), "c-orange"), "k = 95")}
       </div>
-      <div style="font-size:24px;color:var(--ink-2);text-align:center;margin-top:20px">Left peak: the <span class="c-purple">imbalance</span> term of D. Right wall: the <span class="c-orange">component</span> term. k ≤ 6: coming up.</div>`,
+      <div style="font-size:24px;color:var(--ink-2);text-align:center;margin-top:20px">Left peak: <span class="c-purple">imbalance</span> term. Right wall: <span class="c-orange">component</span> term.</div>`,
     });
   })();
 
@@ -863,31 +860,24 @@
     const avg = (k) => G / Math.pow(4, k);
     const I = (k) => Math.round(row("kmer_sweep", 0, k).imbalance).toLocaleString("en-US");
     const zone = (k, color, avgTxt, body, result, hl) =>
-      `<div class="panel stack" style="gap:10px;padding:20px 24px;${hl ? "border-color:#5a3d8f;background:linear-gradient(180deg,#1c1535,#0c1424)" : ""}">
+      `<div class="panel stack" style="gap:14px;padding:26px 28px;${hl ? "border-color:#5a3d8f;background:linear-gradient(180deg,#1c1535,#0c1424)" : ""}">
         <div class="mono ${color}" style="font-size:20px;letter-spacing:.06em">k = ${k}</div>
-        <div style="font-size:28px;font-weight:650">each ${k}-mer appears <span class="${color}">${avgTxt}</span> on average</div>
-        <div style="font-size:22px;line-height:1.45;color:var(--ink-2)">${body}</div>
+        <div style="font-size:30px;font-weight:650"><span class="${color}">${avgTxt}</span> per k-mer</div>
+        <div style="font-size:24px;color:var(--ink-2)">${body}</div>
         <div class="mono ${color}" style="font-size:24px;margin-top:auto">${result}</div></div>`;
     Deck.add({
       title: "Why the Imbalance Peaks at k ≈ 8", duration: 60, steps: 1,
-      html: `${head("Explanation · how often does a k-mer appear?", "Why the imbalance peaks at k ≈ 8", "At k ≈ 8 each k-mer appears only about <b>once</b> on average: by chance some appear twice, many never.")}
-      <div class="body cols-3" style="gap:24px;flex:none">
-        ${zone(5, "c-cyan", `≈ ${Math.round(avg(5))}×`, "Every possible k-mer is there, so every node gets all 4 in-edges and all 4 out-edges.", `balanced · I = ${I(5)}`)}
-        ${zone(8, "c-purple", `≈ ${avg(8).toFixed(2)}×`, "By chance some k-mers appear 2–3 times and many never, so nodes get a <b>random, uneven</b> number of in- and out-edges.", `unbalanced · I = ${I(8)}`, true)}
-        ${zone(17, "c-cyan", `≈ ${avg(17).toExponential(0).replace("e-", " × 10⁻").replace(/(\d+)$/, (d) => d.split("").map((c) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[c]).join(""))}×`, "Every k-mer is unique, so every node has 1 in-edge and 1 out-edge: a clean path.", `balanced · I = ${I(17)} (just the 2 ends)`)}
+      html: `${head("Explanation · how often does a k-mer appear?", "Why the imbalance peaks at k ≈ 8", "At k ≈ 8 each k-mer appears about <b>once</b>.")}
+      <div class="body cols-3" style="gap:32px;flex:none">
+        ${zone(5, "c-cyan", `≈ ${Math.round(avg(5))}×`, "all present → 4 in, 4 out", `I = ${I(5)}`)}
+        ${zone(8, "c-purple", `≈ ${avg(8).toFixed(2)}×`, "some twice, many never → <b>uneven</b>", `I = ${I(8)}`, true)}
+        ${zone(17, "c-cyan", `≈ ${avg(17).toExponential(0).replace("e-", " × 10⁻").replace(/(\d+)$/, (d) => d.split("").map((c) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[c]).join(""))}×`, "all unique → 1 in, 1 out", `I = ${I(17)}`)}
       </div>
-      <div class="panel" data-step="1" style="margin-top:22px;padding:18px 28px;flex:none;display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:center">
-        <div>
-          <h3 style="margin-bottom:10px">Example from lambda, k = 8: node <span class="c-purple mono">ACAATGG</span> appears twice by chance</h3>
-          <div class="mono" style="font-size:26px;line-height:1.6">… <span class="c-cyan">A</span> <span class="c-purple">ACAATGG</span> <span class="c-orange">A</span> … <span class="small">(position 188)</span><br>… <span class="c-cyan">T</span> <span class="c-purple">ACAATGG</span> <span class="c-orange">A</span> … <span class="small">(position 19,367)</span></div>
-        </div>
-        <div style="font-size:23px;line-height:1.55">
-          in-edges: <span class="mono c-cyan">AACAATGG</span>, <span class="mono c-cyan">TACAATGG</span> → <b class="c-cyan">2</b><br>
-          out-edge: <span class="mono c-orange">ACAATGGA</span> appears twice, stored once → <b class="c-orange">1</b><br>
-          <b>2 in ≠ 1 out → off by 1.</b> <span class="muted">Thousands of such chance repeats → I ≈ ${I(8)}.</span>
-        </div>
+      <div class="panel" data-step="1" style="margin-top:32px;padding:22px 32px;flex:none;display:grid;grid-template-columns:1.2fr 1fr;gap:30px;align-items:center">
+        <div class="mono" style="font-size:28px;line-height:1.6">… <span class="c-cyan">A</span> <span class="c-purple">ACAATGG</span> <span class="c-orange">A</span> …<br>… <span class="c-cyan">T</span> <span class="c-purple">ACAATGG</span> <span class="c-orange">A</span> …</div>
+        <div style="font-size:30px"><b class="c-cyan">2 in</b> ≠ <b class="c-orange">1 out</b> → off by 1</div>
       </div>
-      <div style="text-align:center;margin-top:18px"><span class="math mid">average appearances = <i>G</i> / 4<sup><i>k</i></sup> ≈ 1 &nbsp;⇔&nbsp; 4<sup><i>k</i></sup> ≈ <i>G</i> &nbsp;⇔&nbsp; <i>k</i> ≈ log<sub>4</sub> <i>G</i> ≈ 7.8</span></div>`,
+      <div style="text-align:center;margin-top:32px"><span class="math mid"><i>G</i> / 4<sup><i>k</i></sup> ≈ 1 &nbsp;⇔&nbsp; <i>k</i> ≈ log<sub>4</sub> <i>G</i> ≈ 7.8</span></div>`,
     });
   })();
 
