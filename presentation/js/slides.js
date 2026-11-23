@@ -104,7 +104,7 @@
       html: `
       <div style="display:grid;grid-template-columns:780px 1fr;gap:40px;height:100%;align-items:center">
         <div class="stack" style="gap:26px">
-          <div class="eyebrow">Algorithms &amp; Data Structures · follow-up study</div>
+          <div class="eyebrow">Advanced Algorithms and Data Structures</div>
           <h1 style="font-size:96px;line-height:1.0">When De Bruijn<br>Graphs <span class="c-orange">Break</span></h1>
           <div class="lead" style="font-size:34px">Experimental Analysis of Genome Assembly Degradation</div>
           <div style="font-size:28px;margin-top:18px">Tudor Pisica &nbsp;·&nbsp; Andrei Stan</div>
